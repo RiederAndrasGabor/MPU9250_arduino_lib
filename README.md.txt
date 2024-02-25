@@ -1,0 +1,1 @@
+MPU9250 kezelőkönyvtár Arduino környezethez
