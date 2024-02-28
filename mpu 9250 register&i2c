@@ -1,0 +1,11 @@
+datasheet:
+https://invensense.tdk.com/wp-content/uploads/2015/02/PS-MPU-9250A-01-v1.1.pdf
+
+I2C(400kHz):
+pin szam-nev-leiras-mire kell i2c-hez kotni, 20. oldal elejen
+The LSB of the of the I2C slave address is set by pin 9 (AD0), 23.oldal
+*Ha kulso sznezor is kene hozza, 25.oldal illesztes 37.oldal
+i2c mukodese: 32. oldal
+
+registermap:
+https://cdn.sparkfun.com/assets/learn_tutorials/5/5/0/MPU-9250-Register-Map.pdf
