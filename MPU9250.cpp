@@ -14,6 +14,7 @@
 #include "MPU9250.h"
 #include <ctime>
 #include "esp_err.h"
+
 int delay(int milliseconds)
 {
      clock_t goal = milliseconds + clock();
@@ -21,15 +22,13 @@ int delay(int milliseconds)
      return 1;
 }
 
-
-   
 void MPU9250::spiinitialize()
 {
     printf("Start test");
     // Initialize SPI bus
     spi_bus_config_t buscfg={
-        .miso_io_num = 34,
         .mosi_io_num = 25,
+        .miso_io_num = 34, 
         .sclk_io_num = 32,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
@@ -37,15 +36,14 @@ void MPU9250::spiinitialize()
         };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 0));
     spi_device_interface_config_t devcfg={
+         .mode = 0,                  //SPI mode 0
         .clock_speed_hz = 500000,  // 1 MHz
-        .mode = 0,                  //SPI mode 0
         .spics_io_num = 14,         // CS Pin
+          .flags = 0,
         .queue_size = 1,
-        .flags = 0,
         .pre_cb = NULL,
         .post_cb = NULL,
     };
-    spi_device_handle_t spi_dev_mpu9250;
     ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &spi_dev_mpu9250));
     return;
 }
@@ -63,10 +61,11 @@ unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
     uint8_t tx_data[2] = { WriteAddr | 0b10000000, 0x00 };
     uint8_t rx_data[2] = { 0xFF, 0xFF};
     spi_transaction_t t = {
-        .tx_buffer = tx_data,
         .length = 2*8,
+        .tx_buffer = tx_data,
         .rx_buffer = rx_data
     };  
+    
     // Perform blocking write
     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
     return(rx_data[1]);
@@ -77,12 +76,12 @@ unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
     uint8_t tx_data[2] = { WriteAddr | 0b10000000, 0x00 };
     uint8_t rx_data[2] = { 0xFF, 0xFF};
     spi_transaction_t t = {
-        .tx_buffer = tx_data,
         .length = 2*8,
+        .tx_buffer = tx_data,
         .rx_buffer = rx_data
     };  
-    // Perform blocking write
-    ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
+    
+    //ESP_ERROR_CHECK(spi_device_polling_transmit(SPI2_HOST, &t));
     return(rx_data[1]);
     printf("Received data: %d, %d\n",rx_data[0],rx_data[1]);
 }
@@ -95,8 +94,8 @@ void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
         uint8_t tx_data[2] = { (ReadAddr+i) | 0b10000000, 0x00 };
         uint8_t rx_data[2] = { 0xFF, 0xFF};
     spi_transaction_t t = {
-        .tx_buffer = tx_data,
         .length = 2*8,
+        .tx_buffer = tx_data,
         .rx_buffer = rx_data
      };  
      ReadBuf[i] = rx_data[1];
@@ -142,7 +141,7 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
     }
     
     uint8_t i = 0;
-    uint8_t MPU_Init_Data[MPU_InitRegNum][2] = {
+    uint8_t MPU_Init_Data[MPU_InitRegNum][2] = { //[17][2]
         {BIT_H_RESET, MPUREG_PWR_MGMT_1},        // Reset Device
         {0x01, MPUREG_PWR_MGMT_1},               // Clock Source
         {0x00, MPUREG_PWR_MGMT_2},               // Enable Acc & Gyro

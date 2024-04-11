@@ -10,7 +10,7 @@
 
 void app_main()
 {
-    
-    senzor =MPU9250();
+    //MPU9250(long clock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ)
+    MPU9250 senzor(32,14,0x11,0x11);
     senzor.spiinitialize();
 }

@@ -237,7 +237,7 @@ private:
     uint8_t my_low_pass_filter_acc;
 
     //float randomstuffs[3];
-
+    spi_device_handle_t spi_dev_mpu9250;
     float g_bias[3];
     float a_bias[3];      // Bias corrections for gyro and accelerometer
 };
