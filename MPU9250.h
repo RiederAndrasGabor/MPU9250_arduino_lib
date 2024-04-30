@@ -186,12 +186,15 @@
  
 #define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    
  
+enum AccelometerScale {BITSFS_2G=2, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+enum GyroScale {BITSFS_250=2, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
+
 
 class MPU9250 {   
 public:
     // constructor. Default low pass filter of 188Hz
-    MPU9250(long clock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ){
-        my_clock = clock;
+    MPU9250(long mpuclock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ){
+        my_clock = mpuclock;
         my_cs = cs;
         my_low_pass_filter = low_pass_filter;
         my_low_pass_filter_acc = low_pass_filter_acc;
@@ -208,15 +211,15 @@ public:
     unsigned int set_gyro_scale(int scale);
     unsigned int set_acc_scale(int scale);
     void calib_acc();
-    void calib_mag();
+                void calib_mag();
     //void select();
     //void deselect();
     unsigned int whoami();
-    uint8_t AK8963_whoami();
-    uint8_t get_CNTL1();
-    void read_mag();
-    void read_all();
-    void calibrate(float *dest1, float *dest2);
+                uint8_t AK8963_whoami();
+                uint8_t get_CNTL1();
+                void read_mag();
+                void read_all();
+                void calibrate(float *dest1, float *dest2);
  
     
     float acc_divider;

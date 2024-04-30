@@ -24,7 +24,7 @@ int delay(int milliseconds)
 
 void MPU9250::spiinitialize()
 {
-    printf("Start test");
+    printf("Start test \n");
     // Initialize SPI bus
     spi_bus_config_t buscfg={
         .mosi_io_num = 25,
@@ -37,7 +37,7 @@ void MPU9250::spiinitialize()
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 0));
     spi_device_interface_config_t devcfg={
          .mode = 0,                  //SPI mode 0
-        .clock_speed_hz = 500000,  // 1 MHz
+        .clock_speed_hz = 500000,  // 0,5 MHz
         .spics_io_num = 14,         // CS Pin
           .flags = 0,
         .queue_size = 1,
@@ -58,7 +58,10 @@ unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
 
     //delayMicroseconds(50);
     return temp_val;*/
-    uint8_t tx_data[2] = { WriteAddr | 0b10000000, 0x00 };
+   
+     uint8_t a=0b011111111;
+    WriteAddr=(WriteAddr&a);
+    uint8_t tx_data[2] = { WriteAddr, WriteData};
     uint8_t rx_data[2] = { 0xFF, 0xFF};
     spi_transaction_t t = {
         .length = 2*8,
@@ -73,34 +76,42 @@ unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
 unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
 {
     /*return WriteReg(WriteAddr | READ_FLAG,WriteData);*/
-    uint8_t tx_data[2] = { WriteAddr | 0b10000000, 0x00 };
+    uint8_t a=0b10000000;
+    WriteAddr=(WriteAddr|a);
+    uint8_t tx_data[2] = { WriteAddr, WriteData};
     uint8_t rx_data[2] = { 0xFF, 0xFF};
     spi_transaction_t t = {
         .length = 2*8,
         .tx_buffer = tx_data,
         .rx_buffer = rx_data
     };  
+    ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
     
-    //ESP_ERROR_CHECK(spi_device_polling_transmit(SPI2_HOST, &t));
+    printf("Received data: %d\n",rx_data[1]);
     return(rx_data[1]);
-    printf("Received data: %d, %d\n",rx_data[0],rx_data[1]);
 }
 
 void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
 {
-    uint8_t  i = 0;
+    unsigned int  i = 0;
     for(i = 0; i < Bytes; i++)
     {
-        uint8_t tx_data[2] = { (ReadAddr+i) | 0b10000000, 0x00 };
+        uint8_t a=0b10000000;
+        uint8_t b=0x00;
+        a =((ReadAddr+i)|a);
+        uint8_t tx_data[2] = { a, b };
         uint8_t rx_data[2] = { 0xFF, 0xFF};
+    
     spi_transaction_t t = {
         .length = 2*8,
         .tx_buffer = tx_data,
         .rx_buffer = rx_data
      };  
+     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
      ReadBuf[i] = rx_data[1];
+     printf("Received data: %d\n",rx_data[1]);
     }
-    return;
+    
 }
 
 
@@ -179,6 +190,7 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
         delay(1);
     }
 
+    //AccelometerScale scale=BITSFS_2G;
     set_acc_scale(BITS_FS_2G);
     set_gyro_scale(BITS_FS_250DPS);
     
@@ -200,7 +212,7 @@ unsigned int MPU9250::set_acc_scale(int scale){
     unsigned int temp_scale;
     WriteReg(MPUREG_ACCEL_CONFIG, scale);
     
-    switch (scale){
+    switch(scale){
         case BITS_FS_2G:
             acc_divider=16384;
         break;
@@ -230,6 +242,7 @@ unsigned int MPU9250::set_acc_scale(int scale){
             temp_scale=16;
         break;   
     }
+    printf("A beállított skála: %d\n",temp_scale);
     return temp_scale;
 }
 
@@ -264,6 +277,7 @@ unsigned int MPU9250::set_gyro_scale(int scale){
         case BITS_FS_1000DPS:  temp_scale = 1000;   break;
         case BITS_FS_2000DPS:  temp_scale = 2000;   break;   
     }
+    printf("A beállított skála: %d\n",temp_scale);
     return temp_scale;
 }
 
@@ -277,6 +291,7 @@ unsigned int MPU9250::set_gyro_scale(int scale){
 unsigned int MPU9250::whoami(){
     unsigned int response;
     response = WriteReg(MPUREG_WHOAMI|READ_FLAG, 0x00);
+    printf("WHO AM I regiszter értéke: %d\n",response);
     return response;
 }
 
@@ -364,7 +379,7 @@ uint8_t MPU9250::AK8963_whoami(){
     response = WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
     //ReadRegs(MPUREG_EXT_SENS_DATA_00,response,1);
     //response=WriteReg(MPUREG_I2C_SLV0_DO, 0x00);    //Read I2C 
-
+    
     return response;
 }
 
