@@ -186,8 +186,8 @@
  
 #define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    
  
-enum AccelometerScale {BITSFS_2G=2, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
-enum GyroScale {BITSFS_250=2, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
+enum AccelometerScale {BITSFS_2G=0, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+enum GyroScale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
 
 
 class MPU9250 {   
@@ -208,8 +208,8 @@ public:
     bool init(bool calib_gyro = true, bool calib_acc = true);
     void read_acc();
     void read_gyro();
-    unsigned int set_gyro_scale(int scale);
-    unsigned int set_acc_scale(int scale);
+    unsigned int set_gyro_scale(GyroScale scale);
+    unsigned int set_acc_scale(AccelometerScale scale);
     void calib_acc();
                 void calib_mag();
     //void select();

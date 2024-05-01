@@ -23,17 +23,21 @@ void app_main()
     senzor.ReadReg(0x1A,0);
     uint8_t RBuf[8];
     senzor.ReadRegs(0x1A, RBuf,8);
-    AccelometerScale scale=BITSFS_2G; (0,8,16,24)
-    int scale=8;
+    
+    AccelometerScale scale=BITSFS_16G;
     senzor.set_acc_scale(scale);
+
+    GyroScale scale2=BITSFS_250; 
+    senzor.set_gyro_scale(scale2); 
+
     senzor.set_gyro_scale(scale); 
     senzor.whoami();
     senzor.calib_acc();
     senzor.read_acc();
+    senzor.read_gyro();
     senzor.read_gyro();*/
-
-
     
+
     /*hiányoznak még:
     void calib_mag();
     uint8_t AK8963_whoami();

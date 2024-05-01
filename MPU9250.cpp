@@ -190,9 +190,10 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
         delay(1);
     }
 
-    //AccelometerScale scale=BITSFS_2G;
-    set_acc_scale(BITS_FS_2G);
-    set_gyro_scale(BITS_FS_250DPS);
+    AccelometerScale scale1=BITSFS_2G;
+    set_acc_scale(scale1);
+    GyroScale scale2=BITSFS_250;
+    set_gyro_scale(scale2);
     
     calib_mag();  // If experiencing problems here, just comment it out. Should still be somewhat functional.
     return 0;
@@ -208,11 +209,12 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
  * returns the range set (2,4,8 or 16)
  */
 
-unsigned int MPU9250::set_acc_scale(int scale){
+unsigned int MPU9250::set_acc_scale(AccelometerScale scale){
+    int scale1=(int)scale;
     unsigned int temp_scale;
-    WriteReg(MPUREG_ACCEL_CONFIG, scale);
+    WriteReg(MPUREG_ACCEL_CONFIG, scale1);
     
-    switch(scale){
+    switch(scale1){
         case BITS_FS_2G:
             acc_divider=16384;
         break;
@@ -258,11 +260,11 @@ unsigned int MPU9250::set_acc_scale(int scale){
  * returns the range set (250,500,1000 or 2000)
  */
 
-unsigned int MPU9250::set_gyro_scale(int scale){
+unsigned int MPU9250::set_gyro_scale(GyroScale scale){
+    int scale1=(int) scale;
     unsigned int temp_scale;
-    WriteReg(MPUREG_GYRO_CONFIG, scale);
-
-    switch (scale){
+    WriteReg(MPUREG_GYRO_CONFIG, scale1);
+    switch (scale1){
         case BITS_FS_250DPS:   gyro_divider = 131;  break;
         case BITS_FS_500DPS:   gyro_divider = 65.5; break;
         case BITS_FS_1000DPS:  gyro_divider = 32.8; break;
@@ -270,7 +272,7 @@ unsigned int MPU9250::set_gyro_scale(int scale){
     }
 
     temp_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
-
+    
     switch (temp_scale){
         case BITS_FS_250DPS:   temp_scale = 250;    break;
         case BITS_FS_500DPS:   temp_scale = 500;    break;
@@ -355,7 +357,8 @@ void MPU9250::calib_acc()
     int temp_scale;
     //READ CURRENT ACC SCALE
     temp_scale=WriteReg(MPUREG_ACCEL_CONFIG|READ_FLAG, 0x00);
-    set_acc_scale(BITS_FS_8G);
+    AccelometerScale scale1=BITSFS_8G;
+    set_acc_scale(scale1);
     //ENABLE SELF TEST need modify
     //temp_scale=WriteReg(MPUREG_ACCEL_CONFIG, 0x80>>axis);
 
@@ -363,8 +366,8 @@ void MPU9250::calib_acc()
     calib_data[0] = ((response[0]&11100000)>>3) | ((response[3]&00110000)>>4);
     calib_data[1] = ((response[1]&11100000)>>3) | ((response[3]&00001100)>>2);
     calib_data[2] = ((response[2]&11100000)>>3) | ((response[3]&00000011));
-
-    set_acc_scale(temp_scale);
+    AccelometerScale scale2= (AccelometerScale) temp_scale;
+    set_acc_scale(scale2);
 }
 
 uint8_t MPU9250::AK8963_whoami(){
@@ -379,7 +382,7 @@ uint8_t MPU9250::AK8963_whoami(){
     response = WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
     //ReadRegs(MPUREG_EXT_SENS_DATA_00,response,1);
     //response=WriteReg(MPUREG_I2C_SLV0_DO, 0x00);    //Read I2C 
-    
+    printf("AK8963 %d\n",response);
     return response;
 }
 
