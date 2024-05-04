@@ -1,10 +1,3 @@
-/**
- * Invensense MPU-9250 library using the SPI interface
- *
- * Copyright (C) 2015 Brian Chen
- *
- * Open source under the MIT License. See LICENSE.txt.
- */
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -15,7 +8,10 @@
 #include <ctime>
 #include "esp_err.h"
 
-int delay(int milliseconds)
+/**
+ * \brief    Blokkoló késleltetést megvalósító függvény
+ */
+int delay(int milliseconds) //blokkoló késleltetés
 {
      clock_t goal = milliseconds + clock();
      while(goal>clock());
@@ -24,7 +20,6 @@ int delay(int milliseconds)
 
 void MPU9250::spiinitialize()
 {
-    printf("Start test \n");
     // Initialize SPI bus
     spi_bus_config_t buscfg={
         .mosi_io_num = 25,
@@ -48,18 +43,39 @@ void MPU9250::spiinitialize()
     return;
 }
 
+
+void MPU9250::busconfig(int mosi_io_num, int miso_io_num, int sclk_io_num,int quadwp_io_num, int quadhd_io_num, int max_transfer_sz)
+{
+     spi_bus_config_t buscfg={
+        .mosi_io_num = mosi_io_num,
+        .miso_io_num = miso_io_num, 
+        .sclk_io_num = sclk_io_num,
+        .quadwp_io_num = quadwp_io_num,
+        .quadhd_io_num = quadhd_io_num,
+        .max_transfer_sz = max_transfer_sz,
+        };
+        ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 0));
+        return;
+}
+
+void MPU9250::businitialize(uint8_t mode, int clock_speed_hz, int spics_io_num, uint32_t  flags, int queue_size , transaction_cb_t pre_cb, transaction_cb_t  post_cb)
+{
+    spi_device_interface_config_t devcfg={
+         .mode = mode,                  //SPI mode 0
+        .clock_speed_hz = clock_speed_hz,  // 0,5 MHz
+        .spics_io_num = spics_io_num,         // CS Pin
+          .flags = flags,
+        .queue_size = queue_size,
+        .pre_cb = pre_cb,
+        .post_cb = post_cb,
+    };
+    ESP_ERROR_CHECK(spi_bus_add_device(SPI2_HOST, &devcfg, &spi_dev_mpu9250));
+}
+
+
 unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
 {
-    /*unsigned int temp_val;
-    select();
-    SPI.transfer(WriteAddr);
-    temp_val=SPI.transfer(WriteData);
-    deselect();
-
-    //delayMicroseconds(50);
-    return temp_val;*/
-   
-     uint8_t a=0b011111111;
+    uint8_t a=0b011111111;
     WriteAddr=(WriteAddr&a);
     uint8_t tx_data[2] = { WriteAddr, WriteData};
     uint8_t rx_data[2] = { 0xFF, 0xFF};
@@ -68,14 +84,14 @@ unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
         .tx_buffer = tx_data,
         .rx_buffer = rx_data
     };  
-    
     // Perform blocking write
     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
     return(rx_data[1]);
 }
+
+
 unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
 {
-    /*return WriteReg(WriteAddr | READ_FLAG,WriteData);*/
     uint8_t a=0b10000000;
     WriteAddr=(WriteAddr|a);
     uint8_t tx_data[2] = { WriteAddr, WriteData};
@@ -86,8 +102,6 @@ unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
         .rx_buffer = rx_data
     };  
     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
-    
-    printf("Received data: %d\n",rx_data[1]);
     return(rx_data[1]);
 }
 
@@ -109,9 +123,7 @@ void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
      };  
      ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
      ReadBuf[i] = rx_data[1];
-     printf("Received data: %d\n",rx_data[1]);
     }
-    
 }
 
 
@@ -183,18 +195,15 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
         {0x81, MPUREG_I2C_SLV0_CTRL}  //Enable I2C and set 1 byte
         
     };
-
     for(i = 0; i < MPU_InitRegNum; i++) {
         WriteReg(MPU_Init_Data[i][1], MPU_Init_Data[i][0]);
         //delayMicroseconds(1000);  // I2C must slow down the write speed, otherwise it won't work
         delay(1);
     }
-
-    AccelometerScale scale1=BITSFS_2G;
+    Accelometer_Scale scale1=BITSFS_2G;
     set_acc_scale(scale1);
-    GyroScale scale2=BITSFS_250;
+    Gyro_Scale scale2=BITSFS_250;
     set_gyro_scale(scale2);
-    
     calib_mag();  // If experiencing problems here, just comment it out. Should still be somewhat functional.
     return 0;
 }
@@ -209,11 +218,10 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
  * returns the range set (2,4,8 or 16)
  */
 
-unsigned int MPU9250::set_acc_scale(AccelometerScale scale){
+unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
     int scale1=(int)scale;
     unsigned int temp_scale;
     WriteReg(MPUREG_ACCEL_CONFIG, scale1);
-    
     switch(scale1){
         case BITS_FS_2G:
             acc_divider=16384;
@@ -229,7 +237,6 @@ unsigned int MPU9250::set_acc_scale(AccelometerScale scale){
         break;   
     }
     temp_scale = WriteReg(MPUREG_ACCEL_CONFIG|READ_FLAG, 0x00);
-    
     switch (temp_scale){
         case BITS_FS_2G:
             temp_scale=2;
@@ -244,7 +251,6 @@ unsigned int MPU9250::set_acc_scale(AccelometerScale scale){
             temp_scale=16;
         break;   
     }
-    printf("A beállított skála: %d\n",temp_scale);
     return temp_scale;
 }
 
@@ -260,7 +266,7 @@ unsigned int MPU9250::set_acc_scale(AccelometerScale scale){
  * returns the range set (250,500,1000 or 2000)
  */
 
-unsigned int MPU9250::set_gyro_scale(GyroScale scale){
+unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
     int scale1=(int) scale;
     unsigned int temp_scale;
     WriteReg(MPUREG_GYRO_CONFIG, scale1);
@@ -270,16 +276,13 @@ unsigned int MPU9250::set_gyro_scale(GyroScale scale){
         case BITS_FS_1000DPS:  gyro_divider = 32.8; break;
         case BITS_FS_2000DPS:  gyro_divider = 16.4; break;   
     }
-
     temp_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
-    
     switch (temp_scale){
         case BITS_FS_250DPS:   temp_scale = 250;    break;
         case BITS_FS_500DPS:   temp_scale = 500;    break;
         case BITS_FS_1000DPS:  temp_scale = 1000;   break;
         case BITS_FS_2000DPS:  temp_scale = 2000;   break;   
     }
-    printf("A beállított skála: %d\n",temp_scale);
     return temp_scale;
 }
 
@@ -287,13 +290,12 @@ unsigned int MPU9250::set_gyro_scale(GyroScale scale){
 
 /*                                 WHO AM I?
  * usage: call this function to know if SPI is working correctly. It checks the I2C address of the
- * mpu9250 which should be 0x71
+ * mpu9250 which should be 0x71, de itt 73
  */
 
 unsigned int MPU9250::whoami(){
     unsigned int response;
     response = WriteReg(MPUREG_WHOAMI|READ_FLAG, 0x00);
-    printf("WHO AM I regiszter értéke: %d\n",response);
     return response;
 }
 
@@ -317,8 +319,7 @@ void MPU9250::read_acc()
         bit_data = ((int16_t)response[i*2]<<8)|response[i*2+1];
         data = (float)bit_data;
         accel_data[i] = data/acc_divider - a_bias[i];
-    }
-    
+    }   
 }
 
 /*                                 READ GYROSCOPE
@@ -340,7 +341,6 @@ void MPU9250::read_gyro()
         data = (float)bit_data;
         gyro_data[i] = data/gyro_divider - g_bias[i];
     }
-
 }
 
 /*                                 READ ACCELEROMETER CALIBRATION
@@ -357,7 +357,7 @@ void MPU9250::calib_acc()
     int temp_scale;
     //READ CURRENT ACC SCALE
     temp_scale=WriteReg(MPUREG_ACCEL_CONFIG|READ_FLAG, 0x00);
-    AccelometerScale scale1=BITSFS_8G;
+    Accelometer_Scale scale1=BITSFS_8G;
     set_acc_scale(scale1);
     //ENABLE SELF TEST need modify
     //temp_scale=WriteReg(MPUREG_ACCEL_CONFIG, 0x80>>axis);
@@ -366,7 +366,7 @@ void MPU9250::calib_acc()
     calib_data[0] = ((response[0]&11100000)>>3) | ((response[3]&00110000)>>4);
     calib_data[1] = ((response[1]&11100000)>>3) | ((response[3]&00001100)>>2);
     calib_data[2] = ((response[2]&11100000)>>3) | ((response[3]&00000011));
-    AccelometerScale scale2= (AccelometerScale) temp_scale;
+    Accelometer_Scale scale2= (Accelometer_Scale) temp_scale;
     set_acc_scale(scale2);
 }
 
@@ -638,22 +638,3 @@ void MPU9250::calibrate(float *dest1, float *dest2){
     dest2[1] = (float)accel_bias[1]/(float)accelsensitivity;
     dest2[2] = (float)accel_bias[2]/(float)accelsensitivity;
 }
-
-/*void MPU9250::select() {
-    //Set CS low to start transmission (interrupts conversion)
-    SPI.beginTransaction(SPISettings(my_clock, MSBFIRST, SPI_MODE3));
-#ifdef CORE_TEENSY
-    digitalWriteFast(my_cs, LOW);
-#else
-    digitalWrite(my_cs, LOW);
-#endif
-}
-void MPU9250::deselect() {
-    //Set CS high to stop transmission (restarts conversion)
-#ifdef CORE_TEENSY
-    digitalWriteFast(my_cs, HIGH);
-#else
-    digitalWrite(my_cs, HIGH);
-#endif
-    SPI.endTransaction();
-}*/

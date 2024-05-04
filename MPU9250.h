@@ -186,12 +186,42 @@
  
 #define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    
  
-enum AccelometerScale {BITSFS_2G=0, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
-enum GyroScale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
+enum Accelometer_Scale {BITSFS_2G=0, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+enum Gyro_Scale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
 
 
 class MPU9250 {   
+    private:
+    long my_clock;
+    uint8_t my_cs;
+    uint8_t my_low_pass_filter;
+    uint8_t my_low_pass_filter_acc;
+
+    spi_device_handle_t spi_dev_mpu9250;
+    float g_bias[3];
+    float a_bias[3];      // Bias corrections for gyro and accelerometer
 public:
+
+    float acc_divider;
+    float gyro_divider;
+    
+    int calib_data[3];
+    float Magnetometer_ASA[3];
+ 
+    float accel_data[3];
+    float gyro_data[3];
+    float mag_data[3];
+    int16_t mag_data_raw[3];   
+
+    struct {
+  uint8_t low_pass_filter;
+  uint8_t low_pass_filter_acc;
+  Accelometer_Scale acc_scale;
+  Gyro_Scale gyro_scale;
+  int clock_speed_hz;
+} parameters;
+
+
     // constructor. Default low pass filter of 188Hz
     MPU9250(long mpuclock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ){
         my_clock = mpuclock;
@@ -200,16 +230,16 @@ public:
         my_low_pass_filter_acc = low_pass_filter_acc;
     }
     void spiinitialize();
+    void busconfig(int mosi_io_num = 25, int miso_io_num = 34, int sclk_io_num = 32,int quadwp_io_num = -1, int quadhd_io_num = -1, int max_transfer_sz = 32);
+    void businitialize(uint8_t mode = 0, int clock_speed_hz = 500000, int spics_io_num = 14, uint32_t  flags = 0, int queue_size = 1, transaction_cb_t pre_cb = NULL, transaction_cb_t  post_cb = NULL);
     unsigned int WriteReg(uint8_t WriteAddr, uint8_t WriteData );
     unsigned int ReadReg(uint8_t WriteAddr, uint8_t WriteData );
     void ReadRegs(uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes );
-    
-
-    bool init(bool calib_gyro = true, bool calib_acc = true);
+                    bool init(bool calib_gyro = true, bool calib_acc = true);
     void read_acc();
     void read_gyro();
-    unsigned int set_gyro_scale(GyroScale scale);
-    unsigned int set_acc_scale(AccelometerScale scale);
+    unsigned int set_gyro_scale(Gyro_Scale scale);
+    unsigned int set_acc_scale(Accelometer_Scale scale);
     void calib_acc();
                 void calib_mag();
     //void select();
@@ -221,28 +251,21 @@ public:
                 void read_all();
                 void calibrate(float *dest1, float *dest2);
  
-    
-    float acc_divider;
-    float gyro_divider;
-    
-    int calib_data[3];
-    float Magnetometer_ASA[3];
- 
-    float accel_data[3];
-    float gyro_data[3];
-    float mag_data[3];
-    int16_t mag_data_raw[3];    
 
-private:
-    long my_clock;
-    uint8_t my_cs;
-    uint8_t my_low_pass_filter;
-    uint8_t my_low_pass_filter_acc;
-
-    //float randomstuffs[3];
-    spi_device_handle_t spi_dev_mpu9250;
-    float g_bias[3];
-    float a_bias[3];      // Bias corrections for gyro and accelerometer
 };
  
 #endif
+
+
+
+/**
+ * … hosszú szöveg
+ * 
+ */
+
+
+/**
+ * \brief    A brief description in one short sentence.
+ */
+
+
