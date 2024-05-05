@@ -11,6 +11,7 @@
 /**
  * \brief    Blokkoló késleltetést megvalósító függvény
  */
+
 int delay(int milliseconds) //blokkoló késleltetés
 {
      clock_t goal = milliseconds + clock();
@@ -18,9 +19,16 @@ int delay(int milliseconds) //blokkoló késleltetés
      return 1;
 }
 
+
+/**
+ *  SPI inicializálását elvégző függvény
+ *  meghívás esetén először beállítja a megfelelő használt portokat,
+ * ezt követően pedig a kommunikáció konfigurálása következik
+ */
+
 void MPU9250::spiinitialize()
 {
-    // Initialize SPI bus
+    // SPI busz inicializálása
     spi_bus_config_t buscfg={
         .mosi_io_num = 25,
         .miso_io_num = 34, 
@@ -30,6 +38,7 @@ void MPU9250::spiinitialize()
         .max_transfer_sz = 32,
         };
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 0));
+    //SPI konfigurációja
     spi_device_interface_config_t devcfg={
          .mode = 0,                  //SPI mode 0
         .clock_speed_hz = 500000,  // 0,5 MHz
@@ -43,6 +52,9 @@ void MPU9250::spiinitialize()
     return;
 }
 
+/**
+ * \brief    SPI busz konfigurációjának paraméterei itt állíthatóak
+ */
 
 void MPU9250::busconfig(int mosi_io_num, int miso_io_num, int sclk_io_num,int quadwp_io_num, int quadhd_io_num, int max_transfer_sz)
 {
@@ -57,6 +69,10 @@ void MPU9250::busconfig(int mosi_io_num, int miso_io_num, int sclk_io_num,int qu
         ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, 0));
         return;
 }
+
+/**
+ * \brief    SPI busz inicializálásának paraméterei itt állíthatóak 
+ */
 
 void MPU9250::businitialize(uint8_t mode, int clock_speed_hz, int spics_io_num, uint32_t  flags, int queue_size , transaction_cb_t pre_cb, transaction_cb_t  post_cb)
 {
@@ -73,6 +89,13 @@ void MPU9250::businitialize(uint8_t mode, int clock_speed_hz, int spics_io_num, 
 }
 
 
+/**
+ *  regiszter írása
+*  Meg kell adni a címet, amire írni szeretnénk, illetve az adatot
+ *  0-val kell kezdődnie az adatnak, a 2 bájtos adat a regiszterbe kerül
+ *  visszatérési érték: a regiszter tartalma (ellenőrzésképpen)
+ */
+
 unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
 {
     uint8_t a=0b011111111;
@@ -84,11 +107,18 @@ unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
         .tx_buffer = tx_data,
         .rx_buffer = rx_data
     };  
-    // Perform blocking write
+    // kiírásra került az adat
     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
     return(rx_data[1]);
 }
 
+
+/**
+ *  regiszter olvasása
+ *  Meg kell adni a címet, amiről olvasni szeretnénk, illetve az adatot
+ *  1-gyel kell kezdődnie az adatnak, 2 bájtot olvasunk ki a megadott regiszterből
+ *  visszatérési érték: a regiszter tartalma
+ */
 
 unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
 {
@@ -104,6 +134,13 @@ unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
     return(rx_data[1]);
 }
+
+
+/**
+ *  több regiszter olvasása
+ *  Meg kell adni a címet, egy tömböt amelybe az eredményt rögzítjük, illetve a regiszterek számát
+ *  1-gyel kell kezdődnie az adatnak, 2-2 bájtot olvasunk ki a megadott regiszterekből sorjában
+ */
 
 void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
 {
@@ -144,13 +181,13 @@ void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
 #define MPU_InitRegNum 17
 
 bool MPU9250::init(bool calib_gyro, bool calib_acc){
-    //pinMode(my_cs, OUTPUT);
+/*    //pinMode(my_cs, OUTPUT);
 #ifdef CORE_TEENSY
     digitalWriteFast(my_cs, HIGH);
 #else
     //digitalWrite(my_cs, HIGH);
     my_cs=1;
-#endif
+#endif*/
     float temp[3];
 
     if(calib_gyro && calib_acc){
@@ -208,14 +245,10 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
     return 0;
 }
 
-/*                                ACCELEROMETER SCALE
- * usage: call this function at startup, after initialization, to set the right range for the
- * accelerometers. Suitable ranges are:
- * BITS_FS_2G
- * BITS_FS_4G
- * BITS_FS_8G
- * BITS_FS_16G
- * returns the range set (2,4,8 or 16)
+/**                                Gyorsulásmérő skálázása
+ *
+ * 2,4,8 és 16 G értékek beállítására ad lehetőséget FS tartományként a gyorsulásmérőnek
+ * visszatérési értéke a ténylegesen beállított skála
  */
 
 unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
@@ -223,47 +256,27 @@ unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
     unsigned int temp_scale;
     WriteReg(MPUREG_ACCEL_CONFIG, scale1);
     switch(scale1){
-        case BITS_FS_2G:
-            acc_divider=16384;
-        break;
-        case BITS_FS_4G:
-            acc_divider=8192;
-        break;
-        case BITS_FS_8G:
-            acc_divider=4096;
-        break;
-        case BITS_FS_16G:
-            acc_divider=2048;
-        break;   
+        case BITS_FS_2G: acc_divider=16384; break;
+        case BITS_FS_4G: acc_divider=8192;  break;
+        case BITS_FS_8G: acc_divider=4096;  break;
+        case BITS_FS_16G: acc_divider=2048; break;   
     }
     temp_scale = WriteReg(MPUREG_ACCEL_CONFIG|READ_FLAG, 0x00);
     switch (temp_scale){
-        case BITS_FS_2G:
-            temp_scale=2;
-        break;
-        case BITS_FS_4G:
-            temp_scale=4;
-        break;
-        case BITS_FS_8G:
-            temp_scale=8;
-        break;
-        case BITS_FS_16G:
-            temp_scale=16;
-        break;   
+        case BITS_FS_2G:  temp_scale=2;     break;
+        case BITS_FS_4G:  temp_scale=4;     break;
+        case BITS_FS_8G:  temp_scale=8;    break;
+        case BITS_FS_16G: temp_scale=16;    break;   
     }
     return temp_scale;
 }
 
 
 
-/*                                 GYROSCOPE SCALE
- * usage: call this function at startup, after initialization, to set the right range for the
- * gyroscopes. Suitable ranges are:
- * BITS_FS_250DPS
- * BITS_FS_500DPS
- * BITS_FS_1000DPS
- * BITS_FS_2000DPS
- * returns the range set (250,500,1000 or 2000)
+/**                                giroszkóp skálázása
+ *
+ * 250,500,1000 és 2000 DPS értékek beállítására ad lehetőséget FS tartományként a giroszkópnak
+ * visszatérési értéke a ténylegesen beállított skála
  */
 
 unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
@@ -288,9 +301,9 @@ unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
 
 
 
-/*                                 WHO AM I?
- * usage: call this function to know if SPI is working correctly. It checks the I2C address of the
- * mpu9250 which should be 0x71, de itt 73
+/**                                 WHO AM I?
+ * SPI tesztelésére használható, a WHOAMI regiszter  érétkét adja vissza
+ * Megfelelő esetben 0x73-mal tér vissza (Habár adatlap szerint 71-gyel kellene)
  */
 
 unsigned int MPU9250::whoami(){
@@ -301,11 +314,9 @@ unsigned int MPU9250::whoami(){
 
 
 
-/*                                 READ ACCELEROMETER
- * usage: call this function to read accelerometer data. Axis represents selected axis:
- * 0 -> X axis
- * 1 -> Y axis
- * 2 -> Z axis
+/*                                 gyorsulásmérő kiolvasása
+ * A függvény kigyűjti a gyorsulásmérő adta aktuális adatokat. (3 (x,y,z)*2 (alsó, és felső) bájt)
+ * Ezt követően a accel_data[0,1,2] változóba x,y,z koordináták szerint rendezi az adatokat.
  */
 
 void MPU9250::read_acc()
@@ -322,11 +333,9 @@ void MPU9250::read_acc()
     }   
 }
 
-/*                                 READ GYROSCOPE
- * usage: call this function to read gyroscope data. Axis represents selected axis:
- * 0 -> X axis
- * 1 -> Y axis
- * 2 -> Z axis
+/*                                 Giroszkóp kiolvasása
+ * A függvény kigyűjti a giroszkóp adta aktuális adatokat. (3 (x,y,z)*2 (alsó, és felső) bájt)
+ * Ezt követően a gyro_data[0,1,2] változóba x,y,z koordináták szerint rendezi az adatokat.
  */
 
 void MPU9250::read_gyro()
@@ -343,14 +352,37 @@ void MPU9250::read_gyro()
     }
 }
 
+
+void MPU9250::calib_acc(int XAH, int XAL,int YAH, int YAL,int ZAH, int ZAL)
+{
+    MPUREG_XA_OFFSET_H    =   XAH;
+    MPUREG_XA_OFFSET_L    =  XAL;
+    MPUREG_YA_OFFSET_H    =  YAH;
+    MPUREG_YA_OFFSET_L    = YAL;
+    MPUREG_ZA_OFFSET_H    = ZAH;
+    MPUREG_ZA_OFFSET_L    = ZAL; 
+return;
+}
+
+
+void MPU9250::calib_gyro(int XGH, int XGL,int YGH, int YGL,int ZGH, int ZGL)
+{
+    MPUREG_XG_OFFS_USRH = XGH;
+    MPUREG_XG_OFFS_USRL =XGL;
+    MPUREG_YG_OFFS_USRH =YGH;
+    MPUREG_YG_OFFS_USRL =YGL;
+    MPUREG_ZG_OFFS_USRH =ZGH;
+    MPUREG_ZG_OFFS_USRL =ZGL;
+}
+
+
 /*                                 READ ACCELEROMETER CALIBRATION
  * usage: call this function to read accelerometer data. Axis represents selected axis:
  * 0 -> X axis
  * 1 -> Y axis
  * 2 -> Z axis
  * returns Factory Trim value
- */
-
+ * 
 void MPU9250::calib_acc()
 {
     uint8_t response[4];
@@ -369,22 +401,42 @@ void MPU9250::calib_acc()
     Accelometer_Scale scale2= (Accelometer_Scale) temp_scale;
     set_acc_scale(scale2);
 }
+*/
 
 uint8_t MPU9250::AK8963_whoami(){
     uint8_t response;
     WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); //Set the I2C slave addres of AK8963 and set for read.
-    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_WIA); //I2C slave 0 register address from where to begin data transfer
+    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_WIA); //I2C slave 0 re gister address from where to begin data transfer
     WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81); //Read 1 byte from the magnetometer
-
-    //WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81);    //Enable I2C and set bytes
     //delayMicroseconds(100);
-    delay(1);
+    //delay(1);
+
+    const TickType_t delay= 500/portTICK_PERIOD_MS;
+    vTaskDelay(delay);
+
     response = WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
     //ReadRegs(MPUREG_EXT_SENS_DATA_00,response,1);
     //response=WriteReg(MPUREG_I2C_SLV0_DO, 0x00);    //Read I2C 
-    printf("AK8963 %d\n",response);
+    printf("AK8963  WHO AM I REGISTER: %d\n",response);
     return response;
 }
+
+
+unsigned int MPU9250::set_mag_scale(Magneto_Scale scale){
+  switch (scale)
+  {
+   // Possible magnetometer scales (and their register bit settings) are:
+  // 14 bit resolution (0) and 16 bit resolution (1)
+    case BITSFS_14:
+          temp_scale = 10.*4912./8190.; // Proper scale to return milliGauss
+          break;
+    case BITSFS_16:
+          temp_scale = 10.*4912./32760.0; // Proper scale to return milliGauss
+          break;
+    return temp_scale;
+  }
+}
+
 
 void MPU9250::calib_mag(){
     uint8_t response[3];
@@ -437,12 +489,13 @@ void MPU9250::read_mag(){
     uint8_t response[7];
     float data;
     int i;
-
     WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG);  // Set the I2C slave addres of AK8963 and set for read.
     WriteReg(MPUREG_I2C_SLV0_REG, AK8963_HXL);                 // I2C slave 0 register address from where to begin data transfer
     WriteReg(MPUREG_I2C_SLV0_CTRL, 0x87);                      // Read 6 bytes from the magnetometer
 
     // delayMicroseconds(1000);
+    const TickType_t delay= 1000/portTICK_PERIOD_MS;
+    vTaskDelay(delay);
     ReadRegs(MPUREG_EXT_SENS_DATA_00,response,7);
     // must start your read from AK8963A register 0x03 and read seven bytes so that upon read of ST2 register 0x09 the AK8963A will unlatch the data registers for the next measurement.
     for(i = 0; i < 3; i++) {
@@ -456,10 +509,11 @@ uint8_t MPU9250::get_CNTL1(){
     WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); // Set the I2C slave addres of AK8963 and set for read.
     WriteReg(MPUREG_I2C_SLV0_REG, AK8963_CNTL1);              // I2C slave 0 register address from where to begin data transfer
     WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81); //Read 1 byte from the magnetometer
-
+    const TickType_t delay= 1000/portTICK_PERIOD_MS;
     // delayMicroseconds(1000);
     return WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
 }
+ 
 
 void MPU9250::read_all(){
     uint8_t response[21];

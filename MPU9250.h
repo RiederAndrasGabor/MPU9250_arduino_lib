@@ -1,10 +1,3 @@
-/**
- * Invensense MPU-9250 library using the SPI interface
- *
- * Copyright (C) 2015 Brian Chen
- * 
- * Open source under the MIT License. See LICENSE.txt.
- */
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -18,7 +11,7 @@
 
 // #define AK8963FASTMODE
 
-// mpu9250 registers
+// mpu9250 szenzor regszterei:
 #define MPUREG_XG_OFFS_TC 0x00
 #define MPUREG_YG_OFFS_TC 0x01
 #define MPUREG_ZG_OFFS_TC 0x02
@@ -109,12 +102,12 @@
 #define MPUREG_YA_OFFSET_L         0x7B
 #define MPUREG_ZA_OFFSET_H         0x7D
 #define MPUREG_ZA_OFFSET_L         0x7E
-/* ---- AK8963 Reg In MPU9250 ----------------------------------------------- */
+/* ---- AK8963 regiszterek MPU9250-ben ----------------------------------------------- */
  
 #define AK8963_I2C_ADDR             0x0c//0x18
 #define AK8963_Device_ID            0x48
  
-// Read-only Reg
+// Read-only regiszterek
 #define AK8963_WIA                  0x00
 #define AK8963_INFO                 0x01
 #define AK8963_ST1                  0x02
@@ -125,19 +118,19 @@
 #define AK8963_HZL                  0x07
 #define AK8963_HZH                  0x08
 #define AK8963_ST2                  0x09
-// Write/Read Reg
+// Write/Read regiszterek
 #define AK8963_CNTL1                0x0A
 #define AK8963_CNTL2                0x0B
 #define AK8963_ASTC                 0x0C
 #define AK8963_TS1                  0x0D
 #define AK8963_TS2                  0x0E
 #define AK8963_I2CDIS               0x0F
-// Read-only Reg ( ROM )
+// Read-only regiszterek ( ROM )
 #define AK8963_ASAX                 0x10
 #define AK8963_ASAY                 0x11
 #define AK8963_ASAZ                 0x12
  
-// Configuration bits mpu9250
+// konfigurációs bitek mpu9250
 #define BIT_SLEEP 0x40
 #define BIT_H_RESET 0x80
 #define BITS_CLKSEL 0x07
@@ -168,7 +161,7 @@
  
 #define READ_FLAG   0x80
  
-/* ---- Sensitivity --------------------------------------------------------- */
+/* ---- mérőtartomány beállításához szükséges  konstansok --------------------------------------------------------- */
  
 #define MPU9250A_2g       ((float)0.000061035156f) // 0.000061035156 g/LSB
 #define MPU9250A_4g       ((float)0.000122070312f) // 0.000122070312 g/LSB
@@ -181,14 +174,16 @@
 #define MPU9250G_2000dps  ((float)0.060975609756f) // 0.060975609756 dps/LSB
  
 #define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB
- 
-#define MPU9250T_85degC   ((float)0.002995177763f) // 0.002995177763 degC/LSB
- 
+  
 #define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    
  
+/* --- ---*/
+/* --- ---*/
 enum Accelometer_Scale {BITSFS_2G=0, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+/* --- ---*/
 enum Gyro_Scale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
-
+/* --- ---*/
+enum Magneto_Scale {BITSFS_14=0, BITSFS_16=1;};
 
 class MPU9250 {   
     private:
@@ -214,15 +209,15 @@ public:
     int16_t mag_data_raw[3];   
 
     struct {
-  uint8_t low_pass_filter;
-  uint8_t low_pass_filter_acc;
-  Accelometer_Scale acc_scale;
-  Gyro_Scale gyro_scale;
-  int clock_speed_hz;
-} parameters;
+        uint8_t low_pass_filter;
+        uint8_t low_pass_filter_acc;
+        Accelometer_Scale acc_scale;
+        Gyro_Scale gyro_scale;
+        int clock_speed_hz;
+    } parameters;
 
 
-    // constructor. Default low pass filter of 188Hz
+    // alap konstruktor, inicializálatlan esetben 188 Hz-es alul áteresztő szűrővel
     MPU9250(long mpuclock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ){
         my_clock = mpuclock;
         my_cs = cs;
@@ -235,21 +230,21 @@ public:
     unsigned int WriteReg(uint8_t WriteAddr, uint8_t WriteData );
     unsigned int ReadReg(uint8_t WriteAddr, uint8_t WriteData );
     void ReadRegs(uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes );
-                    bool init(bool calib_gyro = true, bool calib_acc = true);
-    void read_acc();
-    void read_gyro();
     unsigned int set_gyro_scale(Gyro_Scale scale);
     unsigned int set_acc_scale(Accelometer_Scale scale);
-    void calib_acc();
-                void calib_mag();
-    //void select();
-    //void deselect();
-    unsigned int whoami();
-                uint8_t AK8963_whoami();
-                uint8_t get_CNTL1();
-                void read_mag();
+    unsigned int whoami();             
+    void read_acc();
+    void read_gyro();
+        unsigned int set_mag_scale(Magneto_Scale scale);
+        void calib_acc(int XAH=0, int XAL=0,int YAH=0, int YAL=0,int ZAH=0, int ZAL=0,)
+        void calib_gyro(int XGH=0, int XGL=0,int YGH=0, int YGL=0,int ZGH=0, int ZGL=0,)
+        uint8_t AK8963_whoami();
+        uint8_t get_CNTL1();  
+        void read_mag();
+                bool init(bool calib_gyro = true, bool calib_acc = true);
                 void read_all();
                 void calibrate(float *dest1, float *dest2);
+                void calib_mag();
  
 
 };
@@ -260,12 +255,37 @@ public:
 
 /**
  * … hosszú szöveg
- * 
+
+A magnetométer feltámasztásához pedig az alábbi regiszterek fognak kelleni:
+#define MPUREG_I2C_SLV0_ADDR       0x25
+#define MPUREG_I2C_SLV0_REG        0x26
+#define MPUREG_I2C_SLV0_CTRL       0x27
+#define MPUREG_EXT_SENS_DATA_00 0x49
+#define MPUREG_I2C_SLV0_DO         0x63
+#define MPUREG_I2C_MST_DELAY_CTRL  0x67
+Ahogy átnéztem kb úgy működhet, hogy a control regiszterbe kell beírni az eszköz címet és 
+azon belül a regiszter címet külön, engedélyezni az írást/olvasást. 1 byte-ot tud írni, 
+a dataout regiszterből.  Ezzel lehet konfigurálni és a szenzor adatokat olvasni, az hogy hogyan,
+le van írva egész jól a magnetométer regiszter mapnél. Amit küld választ, az az external sensor
+data regiszterekbe lesz benne. Ennél a regsizternél van egy leírás a doksiban, hogy mi hova 
+kerül.
+
+Annyi csúnyaság van benne, hogy ugye a kommunikáció úgy néz ki, hogy SPI-on beírjuk, 
+hogy mit küldjön/kérjen, kiadjuk neki a start jelet, utána a belső master lekommunikálja a dolgokat 
+a magnetométerrel, amit meg kell várnunk, majd az eredményt kiolvassuk SPI-on az external sensor
+regiszterből. Emiatt van minden kommunikációban valamennyi delay.  Ezt majd ki kell találni,
+ hogy hogyan küszöböljük ki, vagy hogyan tudunk ezzel együtt élni. Ha jól olvastam lehet 
+ interruptot kérni a szenzortól ha új adat van, előfordulhat, hogy ezt bevetjük, illetve tudjuk 
+ olvasni SPI-ról, hogy mikor végzett az I2C művelettel, lehet erre érdemes várni inkább fix 
+ delay helyett.
  */
 
 
 /**
  * \brief    A brief description in one short sentence.
  */
+
+
+
 
 

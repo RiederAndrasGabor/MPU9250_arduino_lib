@@ -27,28 +27,36 @@ void app_main()
          
     Accelometer_Scale scale=BITSFS_16G;
     senzor.set_acc_scale(scale);
-    
     Gyro_Scale scale2=BITSFS_2000; 
     senzor.set_gyro_scale(scale2); 
     */
     /*
-    set gyro dlpf
-    set gyro scale, 
-    egybe és külön config-olás
-    scale,offset egybe struktűraként mindenes fgv
-
-
-    senzor.calib_acc();
-    senzor.read_acc();
+        -set gyro dlpf
+        -set gyro scale, 
+        -egybe és külön config-olás
+        -scale,offset egybe struktűraként mindenes fgv
+    */
+    
     while(1)
     {
         const TickType_t delay= 50/portTICK_PERIOD_MS;
         vTaskDelay(delay);
         senzor.read_gyro();
        printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
+    }
+    senzor.calib_gyro(0,-50,0,-50,0,-50);
+    /*
+    while(1)
+    {
+        const TickType_t delay= 50/portTICK_PERIOD_MS;
+        vTaskDelay(delay);
+        senzor.read_acc();
+       printf("%f,%f,%f\n", senzor.accel_data[0],senzor.accel_data[1],senzor.accel_data[2]);
 
     }
+    senzor.calib_acc(0,-50,0,-50,0,-50);
     */
+
     /*
     void calib_mag();
     uint8_t AK8963_whoami();
