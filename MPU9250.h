@@ -179,11 +179,11 @@
  
 /* --- ---*/
 /* --- ---*/
-enum Accelometer_Scale {BITSFS_2G=0, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+enum Accelometer_Scale {BITSFS_2G=0x00, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
 /* --- ---*/
 enum Gyro_Scale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
 /* --- ---*/
-enum Magneto_Scale {BITSFS_14=0, BITSFS_16=1;};
+enum Magneto_Scale {BITSFS_14=0, BITSFS_16=1};
 
 class MPU9250 {   
     private:
@@ -208,7 +208,7 @@ public:
     float mag_data[3];
     int16_t mag_data_raw[3];   
 
-    struct {
+    struct { //
         uint8_t low_pass_filter;
         uint8_t low_pass_filter_acc;
         Accelometer_Scale acc_scale;
@@ -235,9 +235,9 @@ public:
     unsigned int whoami();             
     void read_acc();
     void read_gyro();
-        unsigned int set_mag_scale(Magneto_Scale scale);
-        void calib_acc(int XAH=0, int XAL=0,int YAH=0, int YAL=0,int ZAH=0, int ZAL=0,)
-        void calib_gyro(int XGH=0, int XGL=0,int YGH=0, int YGL=0,int ZGH=0, int ZGL=0,)
+    unsigned int set_mag_scale(Magneto_Scale scale);
+        void calib_acc(int XAH=0, int XAL=0,int YAH=0, int YAL=0,int ZAH=0, int ZAL=0);
+        void calib_gyro(int XGH=0, int XGL=0,int YGH=0, int YGL=0,int ZGH=0, int ZGL=0);
         uint8_t AK8963_whoami();
         uint8_t get_CNTL1();  
         void read_mag();
@@ -284,7 +284,6 @@ regiszterből. Emiatt van minden kommunikációban valamennyi delay.  Ezt majd k
 /**
  * \brief    A brief description in one short sentence.
  */
-
 
 
 

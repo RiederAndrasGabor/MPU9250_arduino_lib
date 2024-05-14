@@ -19,52 +19,78 @@ void app_main()
     //MPU9250(long clock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ)
     MPU9250 senzor(32,14,0x11,0x11);
     senzor.spiinitialize();
-    /*
-    senzor.whoami();
-    senzor.WriteReg(0x1A,0x11); 
-    uint8_t RBuf[8];
-    senzor.ReadRegs(0x1A, RBuf,8);
-         
+    
+    // senzor.whoami();
+    
+    // senzor.WriteReg(0x1A,0x0A); 
+    // senzor.WriteReg(0x1C,0x10); 
+    // senzor.ReadReg(0x1A,0x2A); 
+    // senzor.ReadReg(0x1C,0X00); 
+    // uint8_t RBuf[3];
+    // senzor.ReadRegs(0x1A, RBuf,3);
+    // printf("%d\n%d\n%d\n",RBuf[0],RBuf[1],RBuf[2]);
+         /*
     Accelometer_Scale scale=BITSFS_16G;
-    senzor.set_acc_scale(scale);
+    senzor.set_acc_scale(scale);*/
+
+    // // // /*
+    // // //     -set gyro dlpf
+    // // //     -set gyro scale, 
+    // // //     -egybe és külön config-olás
+    // // //     -scale,offset egybe struktűraként mindenes fgv
+    // // // */
+    
+    //senzor.calibrate(senzor.g_bias,senzor.a_bias);
+    senzor.calib_gyro(0,-1,0,-1,0,-1);
     Gyro_Scale scale2=BITSFS_2000; 
     senzor.set_gyro_scale(scale2); 
-    */
-    /*
-        -set gyro dlpf
-        -set gyro scale, 
-        -egybe és külön config-olás
-        -scale,offset egybe struktűraként mindenes fgv
-    */
-    
     while(1)
     {
         const TickType_t delay= 50/portTICK_PERIOD_MS;
         vTaskDelay(delay);
         senzor.read_gyro();
-       printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
+        printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
     }
-    senzor.calib_gyro(0,-50,0,-50,0,-50);
-    /*
-    while(1)
-    {
-        const TickType_t delay= 50/portTICK_PERIOD_MS;
-        vTaskDelay(delay);
-        senzor.read_acc();
-       printf("%f,%f,%f\n", senzor.accel_data[0],senzor.accel_data[1],senzor.accel_data[2]);
 
-    }
-    senzor.calib_acc(0,-50,0,-50,0,-50);
-    */
+    
+    // float dest1[3]={0,0,0};
+    // float dest2[3]={0,0,0};
+    // senzor.calibrate(dest1,dest2);
+    // // printf("%f,%f,%f\n", dest1[0],dest1[1],dest1[2]);
+    // // printf("%f,%f,%f\n", dest2[0],dest2[1],dest2[2]);
 
-    /*
-    void calib_mag();
-    uint8_t AK8963_whoami();
-    uint8_t get_CNTL1();
-    void read_mag();
-    void read_all();
-    void calibrate(float *dest1, float *dest2);
-    */
+    // while(1)
+    // {
+    //     const TickType_t delay= 50/portTICK_PERIOD_MS;
+    //     vTaskDelay(delay);
+    //     senzor.read_acc();
+    //    printf("%f,%f,%f\n", senzor.accel_data[0],senzor.accel_data[1],senzor.accel_data[2]);
+        
+    // }
+    // senzor.calib_acc(0,-50,0,-50,0,-50);
+    
+//   Magneto_Scale scale2=BITSFS_16; 
+//     float a =senzor.set_mag_scale(scale2); 
+//     printf(" %f\n",a);
+    // senzor.AK8963_whoami(); 
+    //   senzor.get_CNTL1(); 
+    // void calib_mag();
+
+
+    // uint8_t RBuf[18];
+    // senzor.ReadRegs(0x00, RBuf,18);
+    // for(int k=0; 18>k;k++)
+    // {
+    // printf(" Az k. regiszter értéke: %d\n",RBuf[k]);
+    // }
+
+    // uint8_t ret= senzor.AK8963_whoami();
+    // uint8_t ret= senzor.get_CNTL1();
+    // printf("visszaadott érték: %d\n",ret);
+    // void read_mag();
+    // void read_all();
+    // void calibrate(float *dest1, float *dest2);
+    
 
     //return 0;
 }

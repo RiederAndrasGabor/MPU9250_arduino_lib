@@ -41,7 +41,7 @@ void MPU9250::spiinitialize()
     //SPI konfigurációja
     spi_device_interface_config_t devcfg={
          .mode = 0,                  //SPI mode 0
-        .clock_speed_hz = 500000,  // 0,5 MHz
+        .clock_speed_hz = 250000,  // 0,5 MHz
         .spics_io_num = 14,         // CS Pin
           .flags = 0,
         .queue_size = 1,
@@ -98,7 +98,7 @@ void MPU9250::businitialize(uint8_t mode, int clock_speed_hz, int spics_io_num, 
 
 unsigned int MPU9250::WriteReg( uint8_t WriteAddr, uint8_t WriteData )
 {
-    uint8_t a=0b011111111;
+    uint8_t a=0b01111111;
     WriteAddr=(WriteAddr&a);
     uint8_t tx_data[2] = { WriteAddr, WriteData};
     uint8_t rx_data[2] = { 0xFF, 0xFF};
@@ -131,8 +131,24 @@ unsigned int  MPU9250::ReadReg( uint8_t WriteAddr, uint8_t WriteData )
         .tx_buffer = tx_data,
         .rx_buffer = rx_data
     };  
+    // kiírásra került az adat
     ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
+    printf("Received data: %d, %d\n",rx_data[0],rx_data[1]);
     return(rx_data[1]);
+    // uint8_t a=0b10000000;
+    // WriteAddr=(WriteAddr|a);
+    // // uint8_t a=0b01111111;
+    // // WriteAddr=(WriteAddr&a);
+    // uint8_t tx_data[2] = { WriteAddr, WriteData};
+    // uint8_t rx_data[2] = { 0xFF, 0xFF};
+    // spi_transaction_t t = {
+    //     .length = 2*8,
+    //     .tx_buffer = tx_data,
+    //     .rx_buffer = rx_data
+    // };  
+    // printf("Asked data: %d \n",rx_data[1]);
+    // ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
+    // return(rx_data[1]);
 }
 
 
@@ -158,6 +174,7 @@ void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
         .tx_buffer = tx_data,
         .rx_buffer = rx_data
      };  
+     
      ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
      ReadBuf[i] = rx_data[1];
     }
@@ -280,14 +297,14 @@ unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
  */
 
 unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
-    int scale1=(int) scale;
+    
     unsigned int temp_scale;
-    WriteReg(MPUREG_GYRO_CONFIG, scale1);
-    switch (scale1){
-        case BITS_FS_250DPS:   gyro_divider = 131;  break;
-        case BITS_FS_500DPS:   gyro_divider = 65.5; break;
-        case BITS_FS_1000DPS:  gyro_divider = 32.8; break;
-        case BITS_FS_2000DPS:  gyro_divider = 16.4; break;   
+    WriteReg(MPUREG_GYRO_CONFIG, 24);
+    switch (scale){
+        case BITSFS_250:   gyro_divider = 131;  break;
+        case BITSFS_500:   gyro_divider = 65.5; break;
+        case BITSFS_1000:  gyro_divider = 32.8; break;
+        case BITSFS_2000:  gyro_divider = 16.4; break;   
     }
     temp_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
     switch (temp_scale){
@@ -303,12 +320,12 @@ unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
 
 /**                                 WHO AM I?
  * SPI tesztelésére használható, a WHOAMI regiszter  érétkét adja vissza
- * Megfelelő esetben 0x73-mal tér vissza (Habár adatlap szerint 71-gyel kellene)
+ * Megfelelő esetben 0x73 (113)-mal tér vissza (Habár adatlap szerint 71-gyel kellene)
  */
 
 unsigned int MPU9250::whoami(){
     unsigned int response;
-    response = WriteReg(MPUREG_WHOAMI|READ_FLAG, 0x00);
+    response = ReadReg(MPUREG_WHOAMI, 0x00);
     return response;
 }
 
@@ -348,31 +365,40 @@ void MPU9250::read_gyro()
     for(i = 0; i < 3; i++) {
         bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
         data = (float)bit_data;
-        gyro_data[i] = data/gyro_divider - g_bias[i];
+        gyro_data[i] = data /gyro_divider - g_bias[i];
     }
 }
 
 
 void MPU9250::calib_acc(int XAH, int XAL,int YAH, int YAL,int ZAH, int ZAL)
 {
-    MPUREG_XA_OFFSET_H    =   XAH;
-    MPUREG_XA_OFFSET_L    =  XAL;
-    MPUREG_YA_OFFSET_H    =  YAH;
-    MPUREG_YA_OFFSET_L    = YAL;
-    MPUREG_ZA_OFFSET_H    = ZAH;
-    MPUREG_ZA_OFFSET_L    = ZAL; 
+    // MPUREG_XA_OFFSET_H    =   XAH;
+    // MPUREG_XA_OFFSET_L    =  XAL;
+    // MPUREG_YA_OFFSET_H    =  YAH;
+    // MPUREG_YA_OFFSET_L    = YAL;
+    // MPUREG_ZA_OFFSET_H    = ZAH;
+    // MPUREG_ZA_OFFSET_L    = ZAL; 
 return;
 }
 
 
 void MPU9250::calib_gyro(int XGH, int XGL,int YGH, int YGL,int ZGH, int ZGL)
 {
-    MPUREG_XG_OFFS_USRH = XGH;
-    MPUREG_XG_OFFS_USRL =XGL;
-    MPUREG_YG_OFFS_USRH =YGH;
-    MPUREG_YG_OFFS_USRL =YGL;
-    MPUREG_ZG_OFFS_USRH =ZGH;
-    MPUREG_ZG_OFFS_USRL =ZGL;
+    float temp[3];
+    calibrate(g_bias, temp);
+    // WriteReg(MPUREG_XG_OFFS_USRH, XGH);
+    // WriteReg(MPUREG_XG_OFFS_USRL, XGL);
+    // WriteReg(MPUREG_YG_OFFS_USRH, YGH);
+    // WriteReg(MPUREG_YG_OFFS_USRL, YGL);
+    // WriteReg(MPUREG_ZG_OFFS_USRH, ZGH);
+    // WriteReg(MPUREG_ZG_OFFS_USRL, ZGL);
+    // ///
+    // ReadReg(MPUREG_XG_OFFS_USRH, XGH);
+    // ReadReg(MPUREG_XG_OFFS_USRL, XGL);
+    // ReadReg(MPUREG_YG_OFFS_USRH, YGH);
+    // ReadReg(MPUREG_YG_OFFS_USRL, YGL);
+    // ReadReg(MPUREG_ZG_OFFS_USRH, ZGH);
+    // ReadReg(MPUREG_ZG_OFFS_USRL, ZGL);
 }
 
 
@@ -403,28 +429,14 @@ void MPU9250::calib_acc()
 }
 */
 
-uint8_t MPU9250::AK8963_whoami(){
-    uint8_t response;
-    WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); //Set the I2C slave addres of AK8963 and set for read.
-    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_WIA); //I2C slave 0 re gister address from where to begin data transfer
-    WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81); //Read 1 byte from the magnetometer
-    //delayMicroseconds(100);
-    //delay(1);
 
-    const TickType_t delay= 500/portTICK_PERIOD_MS;
-    vTaskDelay(delay);
-
-    response = WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
-    //ReadRegs(MPUREG_EXT_SENS_DATA_00,response,1);
-    //response=WriteReg(MPUREG_I2C_SLV0_DO, 0x00);    //Read I2C 
-    printf("AK8963  WHO AM I REGISTER: %d\n",response);
-    return response;
-}
 
 
 unsigned int MPU9250::set_mag_scale(Magneto_Scale scale){
+ float temp_scale=0.0;
   switch (scale)
   {
+    
    // Possible magnetometer scales (and their register bit settings) are:
   // 14 bit resolution (0) and 16 bit resolution (1)
     case BITSFS_14:
@@ -433,8 +445,9 @@ unsigned int MPU9250::set_mag_scale(Magneto_Scale scale){
     case BITSFS_16:
           temp_scale = 10.*4912./32760.0; // Proper scale to return milliGauss
           break;
-    return temp_scale;
+    
   }
+  return temp_scale;
 }
 
 
@@ -505,14 +518,37 @@ void MPU9250::read_mag(){
     }
 }
 
+uint8_t MPU9250::AK8963_whoami(){
+    uint8_t response;
+    WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); //Set the I2C slave addres of AK8963 and set for read.
+    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_WIA); //I2C slave 0 register address from where to begin data transfer
+    WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81); //Read 1 byte from the magnetometer
+    // ReadReg(MPUREG_I2C_SLV0_ADDR,0x00); //Set the I2C slave addres of AK8963 and set for read.
+    // ReadReg(MPUREG_I2C_SLV0_REG, 0x00); //I2C slave 0 re gister address from where to begin data transfer
+    // ReadReg(MPUREG_I2C_SLV0_CTRL, 0x00); //Read 1 byte from the magnetometer
+    const TickType_t delay= 1000/portTICK_PERIOD_MS;
+    vTaskDelay(delay);
+
+    response=WriteReg(MPUREG_EXT_SENS_DATA_00,0x00 );    //Read I2C 
+    ReadReg(MPUREG_EXT_SENS_DATA_00, 0x00);
+    return response;
+}
+
 uint8_t MPU9250::get_CNTL1(){
     WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); // Set the I2C slave addres of AK8963 and set for read.
-    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_CNTL1);              // I2C slave 0 register address from where to begin data transfer
+    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_CNTL1 );              // I2C slave 0 register address from where to begin data transfer
     WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81); //Read 1 byte from the magnetometer
     const TickType_t delay= 1000/portTICK_PERIOD_MS;
+    vTaskDelay(delay);
     // delayMicroseconds(1000);
-    return WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
-}
+    uint8_t RBuf[18];
+    ReadRegs(AK8963_WIA, RBuf,18);
+    for(int i=0; 18>i;i++)
+    {
+    printf(" Az i. regiszter értéke: %d\n",RBuf[i]);
+    }
+        return WriteReg(MPUREG_EXT_SENS_DATA_00|READ_FLAG, 0x00);    //Read I2C 
+} 
  
 
 void MPU9250::read_all(){
@@ -548,7 +584,7 @@ void MPU9250::read_all(){
     }
 }
 
-void MPU9250::calibrate(float *dest1, float *dest2){  
+void MPU9250::calibrate(float *dest1, float *dest2 /*m/s^2-ben adjuk meg !!! */){  
     uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
     uint16_t ii, packet_count, fifo_count;
     int32_t gyro_bias[3]  = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
