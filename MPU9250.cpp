@@ -177,6 +177,7 @@ void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
      
      ESP_ERROR_CHECK(spi_device_polling_transmit(spi_dev_mpu9250, &t));
      ReadBuf[i] = rx_data[1];
+    //  printf("Az i. regiszter értékei: %d\n", rx_data[1]);
     }
 }
 
@@ -286,6 +287,14 @@ unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
         case BITS_FS_16G: temp_scale=16;    break;   
     }
     return temp_scale;
+    // a_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
+    // switch (g_scale){
+    //     case BITS_FS_250DPS:   g_scale = 250; g_scale_g=2;   break;
+    //     case BITS_FS_500DPS:   g_scale = 500; g_scale_g=4;   break;
+    //     case BITS_FS_1000DPS:  g_scale = 1000;g_scale_g=8;   break;
+    //     case BITS_FS_2000DPS:  g_scale = 2000;g_scale_g=16;   break;   
+    // }
+    // return g_scale;
 }
 
 
@@ -298,7 +307,6 @@ unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
 
 unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
     
-    unsigned int temp_scale;
     WriteReg(MPUREG_GYRO_CONFIG, 24);
     switch (scale){
         case BITSFS_250:   gyro_divider = 131;  break;
@@ -306,14 +314,14 @@ unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
         case BITSFS_1000:  gyro_divider = 32.8; break;
         case BITSFS_2000:  gyro_divider = 16.4; break;   
     }
-    temp_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
-    switch (temp_scale){
-        case BITS_FS_250DPS:   temp_scale = 250;    break;
-        case BITS_FS_500DPS:   temp_scale = 500;    break;
-        case BITS_FS_1000DPS:  temp_scale = 1000;   break;
-        case BITS_FS_2000DPS:  temp_scale = 2000;   break;   
+    g_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
+    switch (g_scale){
+        case BITS_FS_250DPS:   g_scale = 250; g_scale_g=2;   break;
+        case BITS_FS_500DPS:   g_scale = 500; g_scale_g=4;   break;
+        case BITS_FS_1000DPS:  g_scale = 1000;g_scale_g=8;   break;
+        case BITS_FS_2000DPS:  g_scale = 2000;g_scale_g=16;   break;   
     }
-    return temp_scale;
+    return g_scale;
 }
 
 
@@ -347,6 +355,7 @@ void MPU9250::read_acc()
         bit_data = ((int16_t)response[i*2]<<8)|response[i*2+1];
         data = (float)bit_data;
         accel_data[i] = data/acc_divider - a_bias[i];
+       // gyro_data[i] = (data*a_scale_g)/(acc_divider*a_scale)- a_bias[i];
     }   
 }
 
@@ -365,72 +374,59 @@ void MPU9250::read_gyro()
     for(i = 0; i < 3; i++) {
         bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
         data = (float)bit_data;
-        gyro_data[i] = data /gyro_divider - g_bias[i];
+        gyro_data[i] = (data*g_scale_g)/(gyro_divider*g_scale)- g_bias[i];
     }
 }
 
 
-void MPU9250::calib_acc(int XAH, int XAL,int YAH, int YAL,int ZAH, int ZAL)
+void MPU9250::calib_acc(float XA, float YA, float ZA)
 {
-    // MPUREG_XA_OFFSET_H    =   XAH;
-    // MPUREG_XA_OFFSET_L    =  XAL;
-    // MPUREG_YA_OFFSET_H    =  YAH;
-    // MPUREG_YA_OFFSET_L    = YAL;
-    // MPUREG_ZA_OFFSET_H    = ZAH;
-    // MPUREG_ZA_OFFSET_L    = ZAL; 
-return;
+    a_bias[0] = XA;  
+    a_bias[1] = YA;
+    a_bias[2] = ZA;
+}
+void MPU9250::auto_calib_acc() 
+{
+    int ii;
+    float datas[3]={0.0,0.0,0.0};
+    for (ii = 0; ii < 50; ii++) {
+        const TickType_t delay= 50/portTICK_PERIOD_MS;
+        vTaskDelay(delay);
+        read_acc();
+        datas[0]+=accel_data[0];
+        datas[1]+=accel_data[1];
+        datas[2]+=accel_data[2];           
+    }
+    a_bias[0] = datas[0]/50;  
+    a_bias[1] = datas[1]/50; 
+    a_bias[2] = datas[2]/50;
 }
 
 
-void MPU9250::calib_gyro(int XGH, int XGL,int YGH, int YGL,int ZGH, int ZGL)
+
+void MPU9250::calib_gyro(float XG, float YG, float ZG)
 {
-    float temp[3];
-    calibrate(g_bias, temp);
-    // WriteReg(MPUREG_XG_OFFS_USRH, XGH);
-    // WriteReg(MPUREG_XG_OFFS_USRL, XGL);
-    // WriteReg(MPUREG_YG_OFFS_USRH, YGH);
-    // WriteReg(MPUREG_YG_OFFS_USRL, YGL);
-    // WriteReg(MPUREG_ZG_OFFS_USRH, ZGH);
-    // WriteReg(MPUREG_ZG_OFFS_USRL, ZGL);
-    // ///
-    // ReadReg(MPUREG_XG_OFFS_USRH, XGH);
-    // ReadReg(MPUREG_XG_OFFS_USRL, XGL);
-    // ReadReg(MPUREG_YG_OFFS_USRH, YGH);
-    // ReadReg(MPUREG_YG_OFFS_USRL, YGL);
-    // ReadReg(MPUREG_ZG_OFFS_USRH, ZGH);
-    // ReadReg(MPUREG_ZG_OFFS_USRL, ZGL);
+    g_bias[0] = XG;  
+    g_bias[1] = YG;
+    g_bias[2] = ZG;
 }
 
-
-/*                                 READ ACCELEROMETER CALIBRATION
- * usage: call this function to read accelerometer data. Axis represents selected axis:
- * 0 -> X axis
- * 1 -> Y axis
- * 2 -> Z axis
- * returns Factory Trim value
- * 
-void MPU9250::calib_acc()
+void MPU9250::auto_calib_gyro() 
 {
-    uint8_t response[4];
-    int temp_scale;
-    //READ CURRENT ACC SCALE
-    temp_scale=WriteReg(MPUREG_ACCEL_CONFIG|READ_FLAG, 0x00);
-    Accelometer_Scale scale1=BITSFS_8G;
-    set_acc_scale(scale1);
-    //ENABLE SELF TEST need modify
-    //temp_scale=WriteReg(MPUREG_ACCEL_CONFIG, 0x80>>axis);
-
-    ReadRegs(MPUREG_SELF_TEST_X,response,4);
-    calib_data[0] = ((response[0]&11100000)>>3) | ((response[3]&00110000)>>4);
-    calib_data[1] = ((response[1]&11100000)>>3) | ((response[3]&00001100)>>2);
-    calib_data[2] = ((response[2]&11100000)>>3) | ((response[3]&00000011));
-    Accelometer_Scale scale2= (Accelometer_Scale) temp_scale;
-    set_acc_scale(scale2);
+    int ii;
+    float datas[3]={0.0,0.0,0.0};
+    for (ii = 0; ii < 50; ii++) {
+        const TickType_t delay= 50/portTICK_PERIOD_MS;
+        vTaskDelay(delay);
+        read_gyro();
+        datas[0]+=gyro_data[0];
+        datas[1]+=gyro_data[1];
+        datas[2]+=gyro_data[2];           
+    }
+    g_bias[0] = datas[0]/50;  
+    g_bias[1] = datas[1]/50; 
+    g_bias[2] = datas[2]/50;
 }
-*/
-
-
-
 
 unsigned int MPU9250::set_mag_scale(Magneto_Scale scale){
  float temp_scale=0.0;

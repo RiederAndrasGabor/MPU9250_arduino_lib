@@ -179,9 +179,9 @@
  
 /* --- ---*/
 /* --- ---*/
-enum Accelometer_Scale {BITSFS_2G=0x00, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+enum Accelometer_Scale {BITSFS_2G=0x00, BITSFS_4G=0x08, BITSFS_8G=0x10, BITSFS_16G=0x18};
 /* --- ---*/
-enum Gyro_Scale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
+enum Gyro_Scale {BITSFS_250=0x00, BITSFS_500=0x08, BITSFS_1000=0x10, BITSFS_2000=0x18};
 /* --- ---*/
 enum Magneto_Scale {BITSFS_14=0, BITSFS_16=1};
 
@@ -191,10 +191,13 @@ class MPU9250 {
     uint8_t my_cs;
     uint8_t my_low_pass_filter;
     uint8_t my_low_pass_filter_acc;
-
+    unsigned int g_scale=0;
+    unsigned int g_scale_g=0;
+    unsigned int a_scale=0;
+    unsigned int a_scale_g=0;
     spi_device_handle_t spi_dev_mpu9250;
-    float g_bias[3];
-    float a_bias[3];      // Bias corrections for gyro and accelerometer
+    float g_bias[3]={0.0,0.0,0.0};
+    float a_bias[3]={0.0,0.0,0.0};      // Bias corrections for gyro and accelerometer
 public:
 
     float acc_divider;
@@ -236,8 +239,10 @@ public:
     void read_acc();
     void read_gyro();
     unsigned int set_mag_scale(Magneto_Scale scale);
-        void calib_acc(int XAH=0, int XAL=0,int YAH=0, int YAL=0,int ZAH=0, int ZAL=0);
-        void calib_gyro(int XGH=0, int XGL=0,int YGH=0, int YGL=0,int ZGH=0, int ZGL=0);
+        void auto_calib_acc();
+        void calib_acc(float XA=0, float YA=0, float ZA=0);
+    void calib_gyro(float XG=0, float YG=0, float ZG=0);
+    void auto_calib_gyro();
         uint8_t AK8963_whoami();
         uint8_t get_CNTL1();  
         void read_mag();
