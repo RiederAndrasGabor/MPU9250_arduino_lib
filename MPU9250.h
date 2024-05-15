@@ -196,21 +196,18 @@ class MPU9250 {
     unsigned int a_scale=0;
     unsigned int a_scale_g=0;
     spi_device_handle_t spi_dev_mpu9250;
-    float g_bias[3]={0.0,0.0,0.0};
-    float a_bias[3]={0.0,0.0,0.0};      // Bias corrections for gyro and accelerometer
+    float g_bias[3]={0,0,0};
+    float a_bias[3]={0,0,0};      // Bias corrections for gyro and accelerometer
 public:
 
     float acc_divider;
     float gyro_divider;
-    
     int calib_data[3];
     float Magnetometer_ASA[3];
- 
     float accel_data[3];
     float gyro_data[3];
     float mag_data[3];
     int16_t mag_data_raw[3];   
-
     struct { //
         uint8_t low_pass_filter;
         uint8_t low_pass_filter_acc;
@@ -228,6 +225,8 @@ public:
         my_low_pass_filter_acc = low_pass_filter_acc;
     }
     void spiinitialize();
+    void initialize_acc_and_gyro(Accelometer_Scale acc_scale=BITSFS_2G, Gyro_Scale gyro_scale=BITSFS_250, bool calib_acc=false, bool calib_gyro=false);
+
     void busconfig(int mosi_io_num = 25, int miso_io_num = 34, int sclk_io_num = 32,int quadwp_io_num = -1, int quadhd_io_num = -1, int max_transfer_sz = 32);
     void businitialize(uint8_t mode = 0, int clock_speed_hz = 500000, int spics_io_num = 14, uint32_t  flags = 0, int queue_size = 1, transaction_cb_t pre_cb = NULL, transaction_cb_t  post_cb = NULL);
     unsigned int WriteReg(uint8_t WriteAddr, uint8_t WriteData );
@@ -239,16 +238,17 @@ public:
     void read_acc();
     void read_gyro();
     unsigned int set_mag_scale(Magneto_Scale scale);
-        void auto_calib_acc();
-        void calib_acc(float XA=0, float YA=0, float ZA=0);
+    void auto_calib_acc();
+    void calib_acc(float XA=0, float YA=0, float ZA=0);
     void calib_gyro(float XG=0, float YG=0, float ZG=0);
     void auto_calib_gyro();
+    //magnetometer, nem mukodnek
         uint8_t AK8963_whoami();
         uint8_t get_CNTL1();  
         void read_mag();
+        
                 bool init(bool calib_gyro = true, bool calib_acc = true);
                 void read_all();
-                void calibrate(float *dest1, float *dest2);
                 void calib_mag();
  
 
@@ -289,7 +289,6 @@ regiszterből. Emiatt van minden kommunikációban valamennyi delay.  Ezt majd k
 /**
  * \brief    A brief description in one short sentence.
  */
-
 
 
 
