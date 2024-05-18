@@ -22,8 +22,8 @@ void app_main()
     
 
     // // // /*     ALAP FGV TESZTELÉS
-    senzor.init(true,true);
-    // senzor.initialize_acc_and_gyro(BITSFS_16G, BITSFS_500, true,false);
+    //senzor.init(true,true);
+    senzor.initialize_acc_and_gyro(BITSFS_4G, BITSFS_500, true,true);
     // senzor.whoami();
     // senzor.WriteReg(0x1A,0x0A); 
     // senzor.WriteReg(0x1C,0x10); 
@@ -46,13 +46,13 @@ void app_main()
     // senzor.set_gyro_scale(scale2); 
     // senzor.calib_gyro(2,0,-10); 
     // //senzor.auto_calib_gyro(); 
-    // while(1)
-    // { 
-    //     const TickType_t delay= 50/portTICK_PERIOD_MS;
-    //     vTaskDelay(delay);
-    //     senzor.read_gyro();
-    //     printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
-    // }
+    while(1)
+    { 
+        const TickType_t delay= 50/portTICK_PERIOD_MS;
+        vTaskDelay(delay);
+        senzor.read_gyro();
+        printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
+    }
     // // // */
 
     // // // /*     ACC FGV TESZTELÉS
@@ -74,32 +74,26 @@ void app_main()
     
 
     // // // /*     MAG FGV TESZTELÉS
-    //   Magneto_Scale scale2=BITSFS_16; 
-    //     float a =senzor.set_mag_scale(scale2); 
-    //     printf(" %f\n",a);
-    senzor.AK8963_whoami(); 
-    senzor.get_CNTL1(); 
-     while(1)
-    {
-        const TickType_t delay= 50/portTICK_PERIOD_MS;
-        vTaskDelay(delay);
-        senzor.read_mag(); 
-       printf("%f,%f,%f\n", senzor.mag_data[0],senzor.mag_data[1],senzor.mag_data[2]);
+    //senzor.set_mag_scale(BITSFS_16); 
+    // senzor.AK8963_whoami(); 
+    // senzor.get_CNTL1(); 
+    //senzor.calib_mag();
+    //senzor.read_all();
+    //  while(1)
+    // {
+    //     const TickType_t delay= 50/portTICK_PERIOD_MS;
+    //     vTaskDelay(delay);
+    //     senzor.read_mag(); 
+    //    printf("%f,%f,%f\n", senzor.mag_data[0],senzor.mag_data[1],senzor.mag_data[2]);
         
-    }
-    
-
+    // }
     // void calib_mag();
     // // // */
 
 
     // // // /*     MARADÉK FGV TESZTELÉS EZEK NEM JÓK MÉG
-    // uint8_t ret= senzor.AK8963_whoami();
-    // uint8_t ret= senzor.get_CNTL1();
-    // printf("visszaadott érték: %d\n",ret);
-    // void read_mag();
     // void read_all();
-    // void calibrate(float *dest1, float *dest2);
+    // void calib_mag
     // // // */
     
 }

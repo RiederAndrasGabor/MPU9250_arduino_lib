@@ -53,17 +53,19 @@ void MPU9250::spiinitialize()
 }
 
 
+/**
+ *  A gyorsulásmérő és a giroszkóp inicializálását elvégző függvény
+ *  Beállítható vele a mérési tartomány, és az automatikus offset kompenzálás kedv szerint
+ * Először a skálát állítjuk be, majd atán az offsetet, alapértelmezett esetben a 
+ * legkisebb mérési tartományt veszünk figyelembe, és az offset kompenzálással nem számolunk.
+ */
  void MPU9250::initialize_acc_and_gyro(Accelometer_Scale acc_scale, Gyro_Scale gyro_scale, bool calib_acc, bool calib_gyro)
  { 
     set_acc_scale(acc_scale);
     set_gyro_scale(gyro_scale);
     if(calib_gyro && calib_acc){
-    //     printf("%f a masodik ertek %f a harmadik ertek %f\n",a_bias[0],a_bias[1],a_bias[2]);
-    //     printf("%f a masodik ertek %f a harmadik ertek %f\n",a_bias[0],a_bias[1],a_bias[2]);
         auto_calib_acc();
         auto_calib_gyro();
-        // printf("%f a masodik ertek %f a harmadik ertek %f\n",a_bias[0],a_bias[1],a_bias[2]);
-        // printf("%f a masodik ertek %f a harmadik ertek %f\n",g_bias[0],g_bias[1],g_bias[2]);
     }
     else if(calib_gyro){
         auto_calib_gyro();
@@ -193,7 +195,7 @@ void MPU9250::ReadRegs( uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes )
 
 
 /*                                     INITIALIZATION
- * usage: call this function at startup, giving the sample rate divider (raging from 0 to 255) and
+ * meg kell hívni magnetometerhez, de elrontja gyro és gyorsulásmérőt
  * low pass filter value; suitable values are:
  * BITS_DLPF_CFG_256HZ_NOLPF2
  * BITS_DLPF_CFG_188HZ
@@ -255,7 +257,7 @@ bool MPU9250::init(bool calib_gyro, bool calib_acc){
         //delayMicroseconds(1000);  // I2C must slow down the write speed, otherwise it won't work
         delay(10);
     }
-    //calib_mag();  // If experiencing problems here, just comment it out. Should still be somewhat functional.
+    calib_mag();  // If experiencing problems here, just comment it out. Should still be somewhat functional.
     return 0;
 }
 
@@ -283,14 +285,6 @@ unsigned int MPU9250::set_acc_scale(Accelometer_Scale scale){
         case BITS_FS_16G: temp_scale=16;    break;   
     }
     return temp_scale;
-    // a_scale = WriteReg(MPUREG_GYRO_CONFIG|READ_FLAG, 0x00);
-    // switch (g_scale){
-    //     case BITS_FS_250DPS:   g_scale = 250; g_scale_g=2;   break;
-    //     case BITS_FS_500DPS:   g_scale = 500; g_scale_g=4;   break;
-    //     case BITS_FS_1000DPS:  g_scale = 1000;g_scale_g=8;   break;
-    //     case BITS_FS_2000DPS:  g_scale = 2000;g_scale_g=16;   break;   
-    // }
-    // return g_scale;
 }
 
 
@@ -324,7 +318,7 @@ unsigned int MPU9250::set_gyro_scale(Gyro_Scale scale){
 
 /**                                 WHO AM I?
  * SPI tesztelésére használható, a WHOAMI regiszter  érétkét adja vissza
- * Megfelelő esetben 0x73 (113)-mal tér vissza (Habár adatlap szerint 71-gyel kellene)
+ * Megfelelő esetben ez a szenzor 0x73 (113)-mal tér vissza (Habár adatlap szerint 71-gyel kellene)
  */
 
 unsigned int MPU9250::whoami(){
@@ -336,7 +330,7 @@ unsigned int MPU9250::whoami(){
 
 
 /*                                 gyorsulásmérő kiolvasása
- * A függvény kigyűjti a gyorsulásmérő adta aktuális adatokat. (3 (x,y,z)*2 (alsó, és felső) bájt)
+ * A függvény kigyűjti a gyorsulásmérő adta aktuális adatokat. (3 (x,y,z)*2 (alsó, és felső)=6 bájtnyi adat)
  * Ezt követően a accel_data[0,1,2] változóba x,y,z koordináták szerint rendezi az adatokat.
  */
 
@@ -369,17 +363,27 @@ void MPU9250::read_gyro()
     for(i = 0; i < 3; i++) {
         bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
         data = (float)bit_data;
-        gyro_data[i] = (data*g_scale_g)/(gyro_divider*g_scale)- g_bias[i];
+        //gyro_data[i] = (data*g_scale_g)/(gyro_divider*g_scale)- g_bias[i];
+        gyro_data[i] = data/gyro_divider- g_bias[i];
     }
 }
 
 
+/*                                 gyorsulásmérő kézi kalibrálása
+ * X,Y és Z irányú offset értéke kézzel megadható ezen függvény segítségével.
+ */
 void MPU9250::calib_acc(float XA, float YA, float ZA)
 {
     a_bias[0] = XA;  
     a_bias[1] = YA;
     a_bias[2] = ZA;
 }
+
+/*                                 gyorsulásmérő automatikus kalibrálása
+ * A függvény kigyűjti a gyorsulásmérő adta értékeket (50db)-ot.
+ *Majd ezknek az átlagát véve ezt adjuk offset értékeknek.
+ *Ennél ez különösen fontos, hiszen Z irányban egy elég nagy alap offset figyelhető meg.
+ */
 void MPU9250::auto_calib_acc() 
 {
     int ii;
@@ -398,7 +402,9 @@ void MPU9250::auto_calib_acc()
 }
 
 
-
+/*                                 Giroszkóp kézi kalibrálása
+ * X,Y és Z irányú offset értéke kézzel megadható ezen függvény segítségével.
+ */
 void MPU9250::calib_gyro(float XG, float YG, float ZG)
 {
     g_bias[0] = XG;  
@@ -406,6 +412,11 @@ void MPU9250::calib_gyro(float XG, float YG, float ZG)
     g_bias[2] = ZG;
 }
 
+
+/*                                 Giroszkóp automatikus kalibrálása
+ * A függvény kigyűjti a giroszkóp adta szögelfordulás értékeket (50db)-ot.
+ *Majd ezknek az átlagát véve ezt adjuk offset értékeknek.
+ */
 void MPU9250::auto_calib_gyro() 
 {
     int ii;
@@ -423,7 +434,13 @@ void MPU9250::auto_calib_gyro()
     g_bias[2] = datas[2]/50;
 }
 
-unsigned int MPU9250::set_mag_scale(Magneto_Scale scale){
+
+/**                                magnetométer skálázása
+ *
+ * 2 féle skála beállítására ad lehetőséget, ... mGauss tartományként a magnetométernek.
+ * visszatérési értéke a ténylegesen beállított skála
+ */
+float MPU9250::set_mag_scale(Magneto_Scale scale){
  float temp_scale=0.0;
   switch (scale)
   {
@@ -432,9 +449,11 @@ unsigned int MPU9250::set_mag_scale(Magneto_Scale scale){
   // 14 bit resolution (0) and 16 bit resolution (1)
     case BITSFS_14:
           temp_scale = 10.*4912./8190.; // Proper scale to return milliGauss
+          //5,997558
           break;
     case BITSFS_16:
           temp_scale = 10.*4912./32760.0; // Proper scale to return milliGauss
+          //1,499390
           break;
   }
   return temp_scale;
@@ -446,8 +465,8 @@ void MPU9250::calib_mag(){
     float data;
     int i;
     // Choose either 14-bit or 16-bit magnetometer resolution
-    //uint8_t MFS_14BITS = 0; // 0.6 mG per LSB
-    uint8_t MFS_16BITS =1; // 0.15 mG per LSB
+    uint8_t MFS_14BITS = 0; // 0.6 mG per LSB
+    //uint8_t MFS_16BITS =1; // 0.15 mG per LSB
     // 2 for 8 Hz, 6 for 100 Hz continuous magnetometer data read
     uint8_t M_8HZ = 0x02; // 8 Hz update
     //uint8_t M_100HZ = 0x06; // 100 Hz continuous magnetometer
@@ -458,35 +477,39 @@ void MPU9250::calib_mag(){
     WriteReg(MPUREG_I2C_SLV0_REG, AK8963_ASAX);                 // I2C slave 0 register address from where to begin data transfer
     WriteReg(MPUREG_I2C_SLV0_CTRL, 0x83);                       // Read 3 bytes from the magnetometer
 
-    //WriteReg(MPUREG_I2C_SLV0_CTRL, 0x81);                     // Enable I2C and set bytes
     //delayMicroseconds(100000);  
     delay(100);
-    //response[0]=WriteReg(MPUREG_EXT_SENS_DATA_01|READ_FLAG, 0x00); //Read I2C 
-
-    WriteReg(AK8963_CNTL1, 0x00);                               // set AK8963 to Power Down
-    //delayMicroseconds(50000);   
+    
+    WriteReg(AK8963_CNTL1, 0x00);                               // set AK8963 to Power Down  
     delay(50);                                               // long wait between AK8963 mode changes
-    WriteReg(AK8963_CNTL1, 0x0F);                               // set AK8963 to FUSE ROM access
-    //delayMicroseconds(50000);    
+    WriteReg(AK8963_CNTL1, 0x0F);                               // set AK8963 to FUSE ROM access  
     delay(50);                                              // long wait between AK8963 mode changes
 
     ReadRegs(MPUREG_EXT_SENS_DATA_00,response,3);
-    //response=WriteReg(MPUREG_I2C_SLV0_DO, 0x00);              // Read I2C 
     for(i = 0; i < 3; i++) {
         data=response[i];
         Magnetometer_ASA[i] = ((data-128)/256+1)*Magnetometer_Sensitivity_Scale_Factor;
+        //printf("ASA értéke %f \n",Magnetometer_ASA[i]);
+    //ASA értéke 0.178711 
+    // ASA értéke 0.178711
+    // ASA értéke 0.171680
     }
     WriteReg(AK8963_CNTL1, 0x00); // set AK8963 to Power Down
-    //delayMicroseconds(50000);
     delay(50);  
     // Configure the magnetometer for continuous read and highest resolution.
     // Set bit 4 to 1 (0) to enable 16 (14) bit resolution in CNTL
     // register, and enable continuous mode data acquisition (bits [3:0]),
     // 0010 for 8 Hz and 0110 for 100 Hz sample rates.   
-    WriteReg(AK8963_CNTL1, MFS_16BITS << 4 | M_8HZ);            // Set magnetometer data resolution and sample ODR
-    //delayMicroseconds(50000);
+    WriteReg(AK8963_CNTL1, MFS_14BITS << 4 | M_8HZ);            // Set magnetometer data resolution and sample ODR
     delay(50);  
 }
+
+/**                                magnetométer olvasása
+ *
+ * A megnetométer regisztereit akarjuk használni, eezért I2C-n beállítjuk az ehhez szükséges paramétereket.
+ * ezt követően a szenzor adataiból X,Y és Z irányban, mindenhol felső és alsó bájtokat összefűzve
+ * megkapjuk a megnetométer adott irányú értékét mGaussban.
+ */
 
 void MPU9250::read_mag(){
     uint8_t response[7];
@@ -496,17 +519,24 @@ void MPU9250::read_mag(){
     WriteReg(MPUREG_I2C_SLV0_REG, AK8963_HXL);                 // I2C slave 0 register address from where to begin data transfer
     WriteReg(MPUREG_I2C_SLV0_CTRL, 0x87);                      // Read 6 bytes from the magnetometer
 
-    // delayMicroseconds(1000);
-    const TickType_t delay= 1000/portTICK_PERIOD_MS;
+    const TickType_t delay= 100/portTICK_PERIOD_MS;
     vTaskDelay(delay);
     ReadRegs(MPUREG_EXT_SENS_DATA_00,response,7);
     // must start your read from AK8963A register 0x03 and read seven bytes so that upon read of ST2 register 0x09 the AK8963A will unlatch the data registers for the next measurement.
     for(i = 0; i < 3; i++) {
         mag_data_raw[i] = ((int16_t)response[i*2+1]<<8)|response[i*2];
         data = (float)mag_data_raw[i];
-        mag_data[i] = data*Magnetometer_ASA[i];
+         mag_data[i] = data*Magnetometer_ASA[i];
     }
 }
+
+
+/**                                magnetométer whoami
+ *
+ * A megnetométer regisztereit akarjuk használni, eezért I2C-n beállítjuk az ehhez szükséges paramétereket.
+ * Ezt követően csak kiolvassuk a kívánt regisztert.
+ * visszatérési értéke a WHOAMI regiszter értéke (72 a headerben beállított érték.)
+ */
 
 uint8_t MPU9250::AK8963_whoami(){
     uint8_t response;
@@ -525,6 +555,13 @@ uint8_t MPU9250::AK8963_whoami(){
     return response;
 }
 
+
+/**                                magnetométer whoami
+ *
+ * A megnetométer regisztereit akarjuk használni, eezért I2C-n beállítjuk az ehhez szükséges paramétereket.
+ * Ezt követően csak kiolvassuk a kívánt regisztert.
+ * visszatérési értéke a CNTL1 regiszter értéke
+ */
 uint8_t MPU9250::get_CNTL1(){
     uint8_t response;
     WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); // Set the I2C slave addres of AK8963 and set for read.
@@ -557,18 +594,20 @@ void MPU9250::read_all(){
         bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
         data = (float)bit_data;
         accel_data[i] = data/acc_divider - a_bias[i];
+        printf("Gyorsulásmérő adata %f\n",accel_data[i]);
     }
     // Get gyroscope value
     for(i=4; i < 7; i++) {
         bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
         data = (float)bit_data;
         gyro_data[i-4] = data/gyro_divider - g_bias[i-4];
+        printf("giroszkóp adata %f\n",gyro_data[i]);
     }
     // Get Magnetometer value
     for(i=7; i < 10; i++) {
         mag_data_raw[i-7] = ((int16_t)response[i*2+1]<<8) | response[i*2];
         data = (float)mag_data_raw[i-7];
         mag_data[i-7] = data * Magnetometer_ASA[i-7];
+        printf("magnetométer adata %f\n", mag_data[i]);
     }
 }
-

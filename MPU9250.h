@@ -77,6 +77,20 @@
 #define MPUREG_GYRO_ZOUT_H 0x47
 #define MPUREG_GYRO_ZOUT_L 0x48
 #define MPUREG_EXT_SENS_DATA_00 0x49
+#define MPUREG_EXT_SENS_DATA_01 0x50
+#define MPUREG_EXT_SENS_DATA_02 0x51
+#define MPUREG_EXT_SENS_DATA_03 0x52
+#define MPUREG_EXT_SENS_DATA_04 0x53
+#define MPUREG_EXT_SENS_DATA_05 0x54
+#define MPUREG_EXT_SENS_DATA_06 0x55
+#define MPUREG_EXT_SENS_DATA_07 0x56
+#define MPUREG_EXT_SENS_DATA_08 0x57
+#define MPUREG_EXT_SENS_DATA_09 0x58
+#define MPUREG_EXT_SENS_DATA_10 0x59
+#define MPUREG_EXT_SENS_DATA_11 0x60
+#define MPUREG_EXT_SENS_DATA_12 0x61
+#define MPUREG_EXT_SENS_DATA_13 0x62
+
 #define MPUREG_I2C_SLV0_DO         0x63
 #define MPUREG_I2C_SLV1_DO         0x64
 #define MPUREG_I2C_SLV2_DO         0x65
@@ -237,19 +251,20 @@ public:
     unsigned int whoami();             
     void read_acc();
     void read_gyro();
-    unsigned int set_mag_scale(Magneto_Scale scale);
+    
     void auto_calib_acc();
     void calib_acc(float XA=0, float YA=0, float ZA=0);
     void calib_gyro(float XG=0, float YG=0, float ZG=0);
     void auto_calib_gyro();
-    //magnetometer, nem mukodnek
-        uint8_t AK8963_whoami();
-        uint8_t get_CNTL1();  
-        void read_mag();
-        
-                bool init(bool calib_gyro = true, bool calib_acc = true);
-                void read_all();
-                void calib_mag();
+    //magnetometer
+    uint8_t AK8963_whoami();
+    uint8_t get_CNTL1(); 
+    float set_mag_scale(Magneto_Scale scale);
+    //magnetometer, nem mukodnek 
+    void read_mag();
+    bool init(bool calib_gyro = true, bool calib_acc = true);
+        void read_all();
+    void calib_mag();
  
 
 };
@@ -260,35 +275,11 @@ public:
 
 /**
  * … hosszú szöveg
-
-A magnetométer feltámasztásához pedig az alábbi regiszterek fognak kelleni:
-#define MPUREG_I2C_SLV0_ADDR       0x25
-#define MPUREG_I2C_SLV0_REG        0x26
-#define MPUREG_I2C_SLV0_CTRL       0x27
-#define MPUREG_EXT_SENS_DATA_00 0x49
-#define MPUREG_I2C_SLV0_DO         0x63
-#define MPUREG_I2C_MST_DELAY_CTRL  0x67
-Ahogy átnéztem kb úgy működhet, hogy a control regiszterbe kell beírni az eszköz címet és 
-azon belül a regiszter címet külön, engedélyezni az írást/olvasást. 1 byte-ot tud írni, 
-a dataout regiszterből.  Ezzel lehet konfigurálni és a szenzor adatokat olvasni, az hogy hogyan,
-le van írva egész jól a magnetométer regiszter mapnél. Amit küld választ, az az external sensor
-data regiszterekbe lesz benne. Ennél a regsizternél van egy leírás a doksiban, hogy mi hova 
-kerül.
-
-Annyi csúnyaság van benne, hogy ugye a kommunikáció úgy néz ki, hogy SPI-on beírjuk, 
-hogy mit küldjön/kérjen, kiadjuk neki a start jelet, utána a belső master lekommunikálja a dolgokat 
-a magnetométerrel, amit meg kell várnunk, majd az eredményt kiolvassuk SPI-on az external sensor
-regiszterből. Emiatt van minden kommunikációban valamennyi delay.  Ezt majd ki kell találni,
- hogy hogyan küszöböljük ki, vagy hogyan tudunk ezzel együtt élni. Ha jól olvastam lehet 
- interruptot kérni a szenzortól ha új adat van, előfordulhat, hogy ezt bevetjük, illetve tudjuk 
- olvasni SPI-ról, hogy mikor végzett az I2C művelettel, lehet erre érdemes várni inkább fix 
- delay helyett.
  */
 
 
 /**
  * \brief    A brief description in one short sentence.
  */
-
 
 
