@@ -269,7 +269,7 @@ public:
         //magnetometer, nem mukodnek 
     void calib_soft_iron_mag(float X1=0, float Y1=0,float X2=0, float Y2=0);
     bool init(bool calib_gyro = true, bool calib_acc = true);
-        void read_all();
+    void read_all();
     void calib_mag();
  
 

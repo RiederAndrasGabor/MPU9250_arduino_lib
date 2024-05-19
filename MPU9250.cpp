@@ -592,35 +592,39 @@ void MPU9250::read_all(){
     int16_t bit_data;
     float data;
     int i;
-
+    //initialize_acc_and_gyro( BITSFS_2G,BITSFS_250 , true ,true);
+    
+    read_acc();
+    read_gyro();
+    read_mag();
     // Fentebbi függvényeknél is alkalmazott I2C a magnetométerhez
-    WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); 
-    WriteReg(MPUREG_I2C_SLV0_REG, AK8963_HXL);                
-    WriteReg(MPUREG_I2C_SLV0_CTRL, 0x87);                     
+    // WriteReg(MPUREG_I2C_SLV0_ADDR,AK8963_I2C_ADDR|READ_FLAG); 
+    // WriteReg(MPUREG_I2C_SLV0_REG, AK8963_HXL);                
+    // WriteReg(MPUREG_I2C_SLV0_CTRL, 0x87);                     
     // must start your read from AK8963A register 0x03 and read seven bytes so that upon read of ST2 register 0x09 the AK8963A will unlatch the data registers for the next measurement.
-
-    ReadRegs(MPUREG_ACCEL_XOUT_H,response,21);
-    // gyorsulásmérő
-    for(i = 0; i < 3; i++) {
-        bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
-        data = (float)bit_data;
-        accel_data[i] = data/acc_divider - a_bias[i];
-        printf("Gyorsulásmérő adata %f\n",accel_data[i]);
-    }
-    // giroszkóp
-    for(i=4; i < 7; i++) {
-        bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
-        data = (float)bit_data;
-        gyro_data[i-4] = data/gyro_divider - g_bias[i-4];
-        printf("giroszkóp adata %f\n",gyro_data[i]);
-    }
-    // magnetométer
-    for(i=7; i < 10; i++) {
-        mag_data_raw[i-7] = ((int16_t)response[i*2+1]<<8) | response[i*2];
-        data = (float)mag_data_raw[i-7];
-        mag_data[i-7] = data * Magnetometer_ASA[i-7];
-        printf("magnetométer adata %f\n", mag_data[i]);
-    }
+   
+    // ReadRegs(MPUREG_ACCEL_XOUT_H,response,21);
+    // // gyorsulásmérő
+    // for(i = 0; i < 3; i++) {
+    //     bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
+    //     data = (float)bit_data;
+    //     accel_data[i] = data/acc_divider - a_bias[i];
+    //     printf("Gyorsulásmérő adata %f\n",accel_data[i]);
+    // }
+    // // giroszkóp
+    // for(i=4; i < 7; i++) {
+    //     bit_data = ((int16_t)response[i*2]<<8) | response[i*2+1];
+    //     data = (float)bit_data;
+    //     gyro_data[i-4] = data/gyro_divider - g_bias[i-4];
+    //     printf("giroszkóp adata %f\n",gyro_data[i]);
+    // }
+    // // magnetométer
+    // for(i=7; i < 10; i++) {
+    //     mag_data_raw[i-7] = ((int16_t)response[i*2+1]<<8) | response[i*2];
+    //     data = (float)mag_data_raw[i-7];
+    //     mag_data[i-7] = data * Magnetometer_ASA[i-7];
+    //     printf("magnetométer adata %f\n", mag_data[i]);
+    // }
 }
 
 
