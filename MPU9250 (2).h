@@ -77,6 +77,20 @@
 #define MPUREG_GYRO_ZOUT_H 0x47
 #define MPUREG_GYRO_ZOUT_L 0x48
 #define MPUREG_EXT_SENS_DATA_00 0x49
+#define MPUREG_EXT_SENS_DATA_01 0x50
+#define MPUREG_EXT_SENS_DATA_02 0x51
+#define MPUREG_EXT_SENS_DATA_03 0x52
+#define MPUREG_EXT_SENS_DATA_04 0x53
+#define MPUREG_EXT_SENS_DATA_05 0x54
+#define MPUREG_EXT_SENS_DATA_06 0x55
+#define MPUREG_EXT_SENS_DATA_07 0x56
+#define MPUREG_EXT_SENS_DATA_08 0x57
+#define MPUREG_EXT_SENS_DATA_09 0x58
+#define MPUREG_EXT_SENS_DATA_10 0x59
+#define MPUREG_EXT_SENS_DATA_11 0x60
+#define MPUREG_EXT_SENS_DATA_12 0x61
+#define MPUREG_EXT_SENS_DATA_13 0x62
+
 #define MPUREG_I2C_SLV0_DO         0x63
 #define MPUREG_I2C_SLV1_DO         0x64
 #define MPUREG_I2C_SLV2_DO         0x65
@@ -173,15 +187,15 @@
 #define MPU9250G_1000dps  ((float)0.030487804878f) // 0.030487804878 dps/LSB
 #define MPU9250G_2000dps  ((float)0.060975609756f) // 0.060975609756 dps/LSB
  
-#define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB
+#define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB , 14 bites esetnél
   
-#define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    
+#define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    //16 bites esetnél
  
 /* --- ---*/
 /* --- ---*/
-enum Accelometer_Scale {BITSFS_2G=0x00, BITSFS_4G=8, BITSFS_8G=16, BITSFS_16G=24};
+enum Accelometer_Scale {BITSFS_2G=0x00, BITSFS_4G=0x08, BITSFS_8G=0x10, BITSFS_16G=0x18};
 /* --- ---*/
-enum Gyro_Scale {BITSFS_250=0, BITSFS_500=8, BITSFS_1000=16, BITSFS_2000=24};
+enum Gyro_Scale {BITSFS_250=0x00, BITSFS_500=0x08, BITSFS_1000=0x10, BITSFS_2000=0x18};
 /* --- ---*/
 enum Magneto_Scale {BITSFS_14=0, BITSFS_16=1};
 
@@ -191,24 +205,25 @@ class MPU9250 {
     uint8_t my_cs;
     uint8_t my_low_pass_filter;
     uint8_t my_low_pass_filter_acc;
-
+    unsigned int g_scale=0;
+    unsigned int g_scale_g=0;
+    unsigned int a_scale=0;
+    unsigned int a_scale_g=0;
     spi_device_handle_t spi_dev_mpu9250;
-    float g_bias[3];
-    float a_bias[3];      // Bias corrections for gyro and accelerometer
+    float g_bias[3]={0,0,0};
+    float a_bias[3]={0,0,0};      // Bias corrections for gyro and accelerometer
+    float m_bias[3]={0,0,0};
 public:
 
     float acc_divider;
     float gyro_divider;
-    
     int calib_data[3];
     float Magnetometer_ASA[3];
- 
     float accel_data[3];
     float gyro_data[3];
     float mag_data[3];
     int16_t mag_data_raw[3];   
-
-    struct { //
+    struct { 
         uint8_t low_pass_filter;
         uint8_t low_pass_filter_acc;
         Accelometer_Scale acc_scale;
@@ -225,6 +240,8 @@ public:
         my_low_pass_filter_acc = low_pass_filter_acc;
     }
     void spiinitialize();
+    void initialize_acc_and_gyro(Accelometer_Scale acc_scale=BITSFS_2G, Gyro_Scale gyro_scale=BITSFS_250, bool calib_acc=false, bool calib_gyro=false);
+
     void busconfig(int mosi_io_num = 25, int miso_io_num = 34, int sclk_io_num = 32,int quadwp_io_num = -1, int quadhd_io_num = -1, int max_transfer_sz = 32);
     void businitialize(uint8_t mode = 0, int clock_speed_hz = 500000, int spics_io_num = 14, uint32_t  flags = 0, int queue_size = 1, transaction_cb_t pre_cb = NULL, transaction_cb_t  post_cb = NULL);
     unsigned int WriteReg(uint8_t WriteAddr, uint8_t WriteData );
@@ -235,56 +252,27 @@ public:
     unsigned int whoami();             
     void read_acc();
     void read_gyro();
-    unsigned int set_mag_scale(Magneto_Scale scale);
-        void calib_acc(int XAH=0, int XAL=0,int YAH=0, int YAL=0,int ZAH=0, int ZAL=0);
-        void calib_gyro(int XGH=0, int XGL=0,int YGH=0, int YGL=0,int ZGH=0, int ZGL=0);
-        uint8_t AK8963_whoami();
-        uint8_t get_CNTL1();  
-        void read_mag();
-                bool init(bool calib_gyro = true, bool calib_acc = true);
-                void read_all();
-                void calibrate(float *dest1, float *dest2);
-                void calib_mag();
+    
+    void auto_calib_acc();
+    void calib_acc(float XA=0, float YA=0, float ZA=0);
+    void calib_gyro(float XG=0, float YG=0, float ZG=0);
+    void auto_calib_gyro();
+
+    //magnetometer
+    void calib_offs_mag(float XM=0, float YM=0, float ZM=0);
+    void auto_calib_mag();
+
+    uint8_t AK8963_whoami();
+    uint8_t get_CNTL1(); 
+    float set_mag_scale(Magneto_Scale scale);
+    void read_mag();
+        //magnetometer, nem mukodnek 
+    void calib_soft_iron_mag(float X1=0, float Y1=0,float X2=0, float Y2=0);
+    bool init(bool calib_gyro = true, bool calib_acc = true);
+        void read_all();
+    void calib_mag();
  
 
 };
  
 #endif
-
-
-
-/**
- * … hosszú szöveg
-
-A magnetométer feltámasztásához pedig az alábbi regiszterek fognak kelleni:
-#define MPUREG_I2C_SLV0_ADDR       0x25
-#define MPUREG_I2C_SLV0_REG        0x26
-#define MPUREG_I2C_SLV0_CTRL       0x27
-#define MPUREG_EXT_SENS_DATA_00 0x49
-#define MPUREG_I2C_SLV0_DO         0x63
-#define MPUREG_I2C_MST_DELAY_CTRL  0x67
-Ahogy átnéztem kb úgy működhet, hogy a control regiszterbe kell beírni az eszköz címet és 
-azon belül a regiszter címet külön, engedélyezni az írást/olvasást. 1 byte-ot tud írni, 
-a dataout regiszterből.  Ezzel lehet konfigurálni és a szenzor adatokat olvasni, az hogy hogyan,
-le van írva egész jól a magnetométer regiszter mapnél. Amit küld választ, az az external sensor
-data regiszterekbe lesz benne. Ennél a regsizternél van egy leírás a doksiban, hogy mi hova 
-kerül.
-
-Annyi csúnyaság van benne, hogy ugye a kommunikáció úgy néz ki, hogy SPI-on beírjuk, 
-hogy mit küldjön/kérjen, kiadjuk neki a start jelet, utána a belső master lekommunikálja a dolgokat 
-a magnetométerrel, amit meg kell várnunk, majd az eredményt kiolvassuk SPI-on az external sensor
-regiszterből. Emiatt van minden kommunikációban valamennyi delay.  Ezt majd ki kell találni,
- hogy hogyan küszöböljük ki, vagy hogyan tudunk ezzel együtt élni. Ha jól olvastam lehet 
- interruptot kérni a szenzortól ha új adat van, előfordulhat, hogy ezt bevetjük, illetve tudjuk 
- olvasni SPI-ról, hogy mikor végzett az I2C művelettel, lehet erre érdemes várni inkább fix 
- delay helyett.
- */
-
-
-/**
- * \brief    A brief description in one short sentence.
- */
-
-
-
-
