@@ -187,9 +187,9 @@
 #define MPU9250G_1000dps  ((float)0.030487804878f) // 0.030487804878 dps/LSB
 #define MPU9250G_2000dps  ((float)0.060975609756f) // 0.060975609756 dps/LSB
  
-#define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB
+#define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB , 14 bites esetnél
   
-#define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    
+#define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    //16 bites esetnél
  
 /* --- ---*/
 /* --- ---*/
@@ -212,6 +212,7 @@ class MPU9250 {
     spi_device_handle_t spi_dev_mpu9250;
     float g_bias[3]={0,0,0};
     float a_bias[3]={0,0,0};      // Bias corrections for gyro and accelerometer
+    float m_bias[3]={0,0,0};
 public:
 
     float acc_divider;
@@ -222,7 +223,7 @@ public:
     float gyro_data[3];
     float mag_data[3];
     int16_t mag_data_raw[3];   
-    struct { //
+    struct { 
         uint8_t low_pass_filter;
         uint8_t low_pass_filter_acc;
         Accelometer_Scale acc_scale;
@@ -256,30 +257,22 @@ public:
     void calib_acc(float XA=0, float YA=0, float ZA=0);
     void calib_gyro(float XG=0, float YG=0, float ZG=0);
     void auto_calib_gyro();
+
     //magnetometer
+    void calib_offs_mag(float XM=0, float YM=0, float ZM=0);
+    void auto_calib_mag();
+
     uint8_t AK8963_whoami();
     uint8_t get_CNTL1(); 
     float set_mag_scale(Magneto_Scale scale);
-    //magnetometer, nem mukodnek 
     void read_mag();
-    bool init(bool calib_gyro = true, bool calib_acc = true);
+        //magnetometer, nem mukodnek 
+         void calib3_mag(float X1=0, float Y1=0,float X2=0, float Y2=0);
+        bool init(bool calib_gyro = true, bool calib_acc = true);
         void read_all();
-    void calib_mag();
+        void calib_mag();
  
 
 };
  
 #endif
-
-
-
-/**
- * … hosszú szöveg
- */
-
-
-/**
- * \brief    A brief description in one short sentence.
- */
-
-

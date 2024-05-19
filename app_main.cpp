@@ -21,9 +21,11 @@ void app_main()
     senzor.spiinitialize();
     
 
-    // // // /*     ALAP FGV TESZTELÉS
-    //senzor.init(true,true);
-    senzor.initialize_acc_and_gyro(BITSFS_4G, BITSFS_500, true,true);
+    // // // /*     ALAP FGV-ek TESZTELÉS
+     senzor.init(true,true);
+
+
+    //senzor.initialize_acc_and_gyro(BITSFS_4G, BITSFS_250, true,true);
     // senzor.whoami();
     // senzor.WriteReg(0x1A,0x0A); 
     // senzor.WriteReg(0x1C,0x10); 
@@ -42,17 +44,17 @@ void app_main()
     
 
     // // /*GYRO TESZTELÉS
-    // Gyro_Scale scale2=BITSFS_250; 
-    // senzor.set_gyro_scale(scale2); 
+    //  Gyro_Scale scale2=BITSFS_250; 
+    //  senzor.set_gyro_scale(scale2); 
     // senzor.calib_gyro(2,0,-10); 
-    // //senzor.auto_calib_gyro(); 
-    while(1)
-    { 
-        const TickType_t delay= 50/portTICK_PERIOD_MS;
-        vTaskDelay(delay);
-        senzor.read_gyro();
-        printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
-    }
+    //senzor.auto_calib_gyro(); 
+    // while(1)
+    // { 
+    //     const TickType_t delay= 50/portTICK_PERIOD_MS;
+    //     vTaskDelay(delay);
+    //     senzor.read_gyro();
+    //     printf("%f,%f,%f\n", senzor.gyro_data[0],senzor.gyro_data[1],senzor.gyro_data[2]);
+    // }
     // // // */
 
     // // // /*     ACC FGV TESZTELÉS
@@ -62,14 +64,14 @@ void app_main()
     // //senzor.calib_acc(0,-10,4);
     //  const TickType_t delay2= 1000/portTICK_PERIOD_MS;
     //     vTaskDelay(delay2);
-    // while(1)
-    // {
-    //     const TickType_t delay= 50/portTICK_PERIOD_MS;
-    //     vTaskDelay(delay);
-    //     senzor.read_acc();
-    //    printf("%f,%f,%f\n", senzor.accel_data[0],senzor.accel_data[1],senzor.accel_data[2]);
+    while(1)
+    {
+        const TickType_t delay= 50/portTICK_PERIOD_MS;
+        vTaskDelay(delay);
+        senzor.read_acc();
+       printf("%f,%f,%f\n", senzor.accel_data[0],senzor.accel_data[1],senzor.accel_data[2]);
         
-    // }
+    }
     // // // */
     
 
@@ -79,6 +81,8 @@ void app_main()
     // senzor.get_CNTL1(); 
     //senzor.calib_mag();
     //senzor.read_all();
+    // senzor.auto_calib_mag();
+    //senzor.calib_offs_mag(12,600);
     //  while(1)
     // {
     //     const TickType_t delay= 50/portTICK_PERIOD_MS;
@@ -88,12 +92,6 @@ void app_main()
         
     // }
     // void calib_mag();
-    // // // */
-
-
-    // // // /*     MARADÉK FGV TESZTELÉS EZEK NEM JÓK MÉG
-    // void read_all();
-    // void calib_mag
     // // // */
     
 }
