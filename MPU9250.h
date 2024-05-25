@@ -9,7 +9,6 @@
 #define MPU9250_h
 
 
-// #define AK8963FASTMODE
 
 // mpu9250 szenzor regszterei:
 #define MPUREG_XG_OFFS_TC 0x00
@@ -116,7 +115,7 @@
 #define MPUREG_YA_OFFSET_L         0x7B
 #define MPUREG_ZA_OFFSET_H         0x7D
 #define MPUREG_ZA_OFFSET_L         0x7E
-/* ---- AK8963 regiszterek MPU9250-ben ----------------------------------------------- */
+/* ---- AK8963, magnetométeres regiszterek MPU9250-ben ----------------------------------------------- */
  
 #define AK8963_I2C_ADDR             0x0c//0x18
 #define AK8963_Device_ID            0x48
@@ -187,31 +186,31 @@
 #define MPU9250G_1000dps  ((float)0.030487804878f) // 0.030487804878 dps/LSB
 #define MPU9250G_2000dps  ((float)0.060975609756f) // 0.060975609756 dps/LSB
  
-#define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB , 14 bites esetnél
+#define MPU9250M_4800uT   ((float)0.6f)            // 0.6 uT/LSB , mag. 14 bites eseténél
   
-#define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    //16 bites esetnél
+#define     Magnetometer_Sensitivity_Scale_Factor ((float)0.15f)    //mag. 16 bites eseténél
  
-/* --- ---*/
-/* --- ---*/
+
+/* ---A gyorsulásmérő 4 mérési tartományát ezekkel a bitekkel lehet beállítani ---*/
 enum Accelometer_Scale {BITSFS_2G=0x00, BITSFS_4G=0x08, BITSFS_8G=0x10, BITSFS_16G=0x18};
-/* --- ---*/
+/* ---A giroszkóp 4 mérési tartományát ezekkel a bitekkel lehet beállítani ---*/
 enum Gyro_Scale {BITSFS_250=0x00, BITSFS_500=0x08, BITSFS_1000=0x10, BITSFS_2000=0x18};
-/* --- ---*/
+/* ---A magnetométer 2 db mérési tartományát ezekkel a bitekkel lehet beállítani ---*/
 enum Magneto_Scale {BITSFS_14=0, BITSFS_16=1};
 
 class MPU9250 {   
     private:
-    long my_clock;
+    //long my_clock;
     uint8_t my_cs;
-    uint8_t my_low_pass_filter;
-    uint8_t my_low_pass_filter_acc;
-    unsigned int g_scale=0;
-    unsigned int g_scale_g=0;
-    unsigned int a_scale=0;
-    unsigned int a_scale_g=0;
+    //uint8_t my_low_pass_filter;
+    //uint8_t my_low_pass_filter_acc;
+
+    //SPI-hez szükséges változó
     spi_device_handle_t spi_dev_mpu9250;
+
+    // Offset hiha kompenzálása
     float g_bias[3]={0,0,0};
-    float a_bias[3]={0,0,0};      // Bias corrections for gyro and accelerometer
+    float a_bias[3]={0,0,0};      
     float m_bias[3]={0,0,0};
 public:
 
@@ -222,56 +221,73 @@ public:
     float accel_data[3];
     float gyro_data[3];
     float mag_data[3];
-    int16_t mag_data_raw[3];   
+    int16_t mag_data_raw[3];
+
     struct { 
-        uint8_t low_pass_filter;
-        uint8_t low_pass_filter_acc;
-        Accelometer_Scale acc_scale;
-        Gyro_Scale gyro_scale;
-        int clock_speed_hz;
+        uint8_t my_low_pass_filter;
+        uint8_t my_low_pass_filter_acc;
+        long my_clock;
+        unsigned int a_scale=0;
+        unsigned int g_scale=0;
+        float mag_scale;
+        bool a_offset=false;
+        bool g_offset=false;
+        bool mag_offset=false;
     } parameters;
 
 
     // alap konstruktor, inicializálatlan esetben 188 Hz-es alul áteresztő szűrővel
     MPU9250(long mpuclock, uint8_t cs, uint8_t low_pass_filter = BITS_DLPF_CFG_188HZ, uint8_t low_pass_filter_acc = BITS_DLPF_CFG_188HZ){
-        my_clock = mpuclock;
+        parameters.my_clock = mpuclock;
         my_cs = cs;
-        my_low_pass_filter = low_pass_filter;
-        my_low_pass_filter_acc = low_pass_filter_acc;
+        parameters.my_low_pass_filter = low_pass_filter;
+        parameters.my_low_pass_filter_acc = low_pass_filter_acc;
     }
+    //SPI kommunikáció felállításáért felelős függvények
     void spiinitialize();
-    void initialize_acc_and_gyro(Accelometer_Scale acc_scale=BITSFS_2G, Gyro_Scale gyro_scale=BITSFS_250, bool calib_acc=false, bool calib_gyro=false);
-
     void busconfig(int mosi_io_num = 25, int miso_io_num = 34, int sclk_io_num = 32,int quadwp_io_num = -1, int quadhd_io_num = -1, int max_transfer_sz = 32);
     void businitialize(uint8_t mode = 0, int clock_speed_hz = 500000, int spics_io_num = 14, uint32_t  flags = 0, int queue_size = 1, transaction_cb_t pre_cb = NULL, transaction_cb_t  post_cb = NULL);
+
+
+    //Regiszterekhez hozzáférés
     unsigned int WriteReg(uint8_t WriteAddr, uint8_t WriteData );
     unsigned int ReadReg(uint8_t WriteAddr, uint8_t WriteData );
     void ReadRegs(uint8_t ReadAddr, uint8_t *ReadBuf, unsigned int Bytes );
+
+    //Gyorsulásmérő, és giroszkóp mérési tartománya, és automatikus offset kompenzálás megadása
+    //"init" függvény segítségével életre kel a magnetométer is
+    void initialize_acc_and_gyro(Accelometer_Scale acc_scale=BITSFS_2G, Gyro_Scale gyro_scale=BITSFS_250, bool calib_acc=false, bool calib_gyro=false);
+    bool init(bool calib_gyro = true, bool calib_acc = true);
+
+    //A három szenzor mérési tartományának skálázása
     unsigned int set_gyro_scale(Gyro_Scale scale);
     unsigned int set_acc_scale(Accelometer_Scale scale);
-    unsigned int whoami();             
-    void read_acc();
-    void read_gyro();
-    
-    void auto_calib_acc();
-    void calib_acc(float XA=0, float YA=0, float ZA=0);
-    void calib_gyro(float XG=0, float YG=0, float ZG=0);
-    void auto_calib_gyro();
+    float set_mag_scale(Magneto_Scale scale);
 
-    //magnetometer
-    void calib_offs_mag(float XM=0, float YM=0, float ZM=0);
-    void auto_calib_mag();
-
+    //Alap regiszterek értékeinke olvasása, első tesztekhez hasznos
+    unsigned int whoami(); 
     uint8_t AK8963_whoami();
     uint8_t get_CNTL1(); 
-    float set_mag_scale(Magneto_Scale scale);
+
+    //Szenzor vagy szenzorok értékeinek kiolvasása
+    void read_acc();
+    void read_gyro();
     void read_mag();
-        //magnetometer, nem mukodnek 
-    void calib_soft_iron_mag(float X1=0, float Y1=0,float X2=0, float Y2=0);
-    bool init(bool calib_gyro = true, bool calib_acc = true);
     void read_all();
+
+    //Automatikus offset kompenzálások
+    void auto_calib_acc();
+    void auto_calib_gyro();
+    void auto_calib_mag();
+
+    //Kézzel történő offset megadása, 
+    //Magnetométer skálázási tényezőjének meghívása, és lágymágneses zavar kompenzálása
+    void calib_acc(float XA=0, float YA=0, float ZA=0);
+    void calib_gyro(float XG=0, float YG=0, float ZG=0);
     void calib_mag();
- 
+    void calib_offs_mag(float XM=0, float YM=0, float ZM=0);
+    void calib_soft_iron_mag(float X1=0, float Y1=0,float X2=0, float Y2=0);
+    
 
 };
  
